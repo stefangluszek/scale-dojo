@@ -58,11 +58,9 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 **Follow-up (2026-11-01):** the circle's center now opens a root and scale picker in both views, and number keys play the scale's notes in order (`1` is the root; the last number is the root an octave up). Unit tests cover opening, live choices, keyboard use (arrows, Escape, focus return), closing on an outside click or tabbing away, sync with the selectors, number keys for each scale, and keys ignored in text fields, selects, with modifiers, and on repeat. A browser test changes the scale through the picker in zen mode and checks the pitches of the number keys through real Web Audio output.
 
-**Next session:** stage 2 microphone input and live feedback. Preserve the output-only playback boundary and benchmark low-bass pitch detection before choosing an input implementation.
-
 ## Stage 2 — Microphone input and live note feedback
 
-**Status:** planned.
+**Status:** implemented and verified on deterministic recordings and Chromium's fake microphone (2026-11-01). **The real-instrument check below has not been done yet.**
 
 **Dependencies:** stage 1 visualizer; an explicit choice of pitch detector supported by a short benchmark.
 
@@ -80,11 +78,56 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 **Tests:** deterministic PCM fixtures at common sample rates, low E1 and higher bass notes, detuning, silence, noise, strong harmonics and octave ambiguity; mocked permission/error/cleanup paths; browser integration with a fake audio input where available. Perform a real bass microphone or audio-interface check separately.
 
+**Detector choice.** `npm run bench:pitch` (`src/domain/pitch/detector.benchmark.ts`) compares the McLeod Pitch Method (MPM) with YIN on every semitone from E1 to G4, at 44.1 and 48 kHz, in tune and at +23 and −37 cents (240 windows per condition), with 2048-, 4096- and 8192-sample windows. A window counts as a note only at clarity ≥ 0.8. Results with the shipped 4096-sample window:
+
+| Condition                                                   | MPM correct note | MPM median / p95 error | YIN correct note   |
+| ----------------------------------------------------------- | ---------------- | ---------------------- | ------------------ |
+| Sine; bass-like harmonics                                   | 100%             | 0.0 / 0.0 cents        | 100%               |
+| Bass-like, 20 dB SNR white noise                            | 100%             | 0.3 / 1.8 cents        | 100%               |
+| Bass-like, 10 dB SNR white noise                            | 100%             | 2.3 / 7.1 cents        | 92.9% (15 octave)  |
+| Plucked: decaying, stiff string (B = 0.0003)                | 100%             | 3.7 / 3.9 cents¹       | 100%               |
+| Phone microphone: fundamental at 8% of the loudest harmonic | 100%             | 0.0 / 0.0 cents        | 100%               |
+| Phone microphone, 20 dB SNR                                 | 100%             | 0.2 / 1.0 cents        | 100%               |
+| Octave trap: strong even, weak odd harmonics                | 100%             | 0.0 / 0.0 cents        | 27.5% (174 octave) |
+| White noise, 50 windows                                     | 0 reported       | —                      | 0 reported         |
+
+¹ String stiffness raises the partials, so both detectors read such strings slightly sharp.
+
+MPM was chosen: it is the only one without octave errors on the octave trap and in heavy noise, and it costs about the same (4.2 ms per 4096-sample window for MPM, 3.8 ms for YIN, in Node on the development container). 2048-sample windows were just as accurate on these fixtures but hold under two periods of E1, so the app uses the power of two of at least 75 ms: 4096 samples at 44.1 or 48 kHz. Both detectors are implemented in this repository; no dependency was added.
+
+**Pipeline.** `MicrophoneInput` reads the newest window from an `AnalyserNode` every 40 ms. Windows quieter than −48 dBFS RMS are silence and skip detection. `NoteStabilizer` trusts a window at clarity ≥ 0.8 within 38–420 Hz, starts a note once it persists for 40 ms across at least two windows, keeps a held note through ±70 cents and through dropouts shorter than 120 ms, and shows the median tuning of the last five windows. Silence and untrusted sound are separate readings, never wrong notes.
+
+**Targets and measured results (deterministic recordings).**
+
+- Accuracy target: the right note and octave for every semitone E1–G4, within 5 cents on clean tones, with no octave errors on weak-fundamental, octave-trap or 20 dB SNR fixtures. Met (see the table and `detector.test.ts`).
+- Latency target: a clean note shown within 200 ms of its onset for E1 and 150 ms from A1 up, excluding the browser's input latency. Measured over eight onset phases at 44.1 and 48 kHz: E1 110–150 ms, A1 90–130 ms, D2 80–115 ms, G2 70–105 ms, C3 65–100 ms, G3 55–90 ms, G4 50–85 ms. `stabilizer.test.ts` enforces the targets.
+- Stability: a two-second decaying E1 recorded through the phone-microphone timbre gives one unbroken reading; repeated notes separated by 300 ms of silence give two readings; trailing white noise is never reported as a note.
+
+**Verified outcome:**
+
+- `npm run check`: 163 unit/component tests passed; formatting, coverage (99.8% statements, 98.9% branches, 100% functions and lines), type checking, and production build passed.
+- `npm run test:browser`: 20 tests passed across Chromium desktop (1440×1000) and mobile emulation (390×844), including the stage 1 suite. Chromium's fake microphone plays a generated E1/F1 bass recording through real `getUserMedia` capture and Web Audio analysis. The tests check the readout, scale membership, fretboard and circle rings, no request before Start, released tracks and closed audio context after Stop and after device loss, a blocked microphone, zen layout fit while listening, and no 320px overflow.
+- Desktop/mobile screenshots of both views while listening were visually inspected.
+
+**Manual check still to do (real instrument).** Run the deployed site or `npm run dev` on localhost with a bass, ideally twice: once through a laptop or phone microphone near an amplifier, once through an audio interface. Play each open string, fret 5, 7 and 12 on every string, a slow chromatic run on the E string, and the same note plucked repeatedly. Record whether each note and octave reads correctly, how long it takes to appear, whether tuning agrees with a hardware tuner within about 5 cents, whether held notes flicker, and whether the browser reports voice processing still on. Note the browser, device, and microphone. Update this section with the results.
+
+**Known limitations:**
+
+- Only Chromium was tested, with a fake microphone. Firefox, Safari, physical phones, real microphones, and rooms are untested. Phone and laptop microphones pick up little at 41 Hz; the weak-fundamental fixture models this, but real devices may be worse.
+- Monophonic: chords or strings left ringing give an unclear or dominant-note reading.
+- The −48 dBFS silence gate is fixed. A very quiet acoustic bass may read as silent and a noisy room as "no clear note"; there is no calibration yet.
+- The range stops at 38 Hz, so five-string B0 (30.9 Hz) and drop-D's D1 (36.7 Hz) are not supported. Notes above 420 Hz read as unclear.
+- Browsers may not honor the request to turn off echo cancellation, noise suppression, and automatic gain control. The full page names any that stay on.
+- Analysis runs on the main thread at 25 windows per second. Phone CPU use and latency have not been measured; `AudioWorklet` remains an option if they are inadequate.
+- Hiding the page stops listening. Synthesized playback is audible to the microphone while listening.
+
+**Next session:** stage 3, capturing and reviewing practice sequences. Build on `NoteStabilizer` readings and `useLiveNote`'s lifecycle; do the real-instrument check first if possible, since segmentation depends on how real notes start and decay.
+
 ## Stage 3 — Capture and review practice sequences
 
 **Status:** planned.
 
-**Dependencies:** stage 2 stable note estimates and microphone lifecycle.
+**Dependencies:** stage 2 stable note estimates and microphone lifecycle (implemented); ideally the stage 2 real-instrument check.
 
 **Deliverables:** session Start/Stop/Clear, a timestamped note sequence, in-scale/off-scale labels, a useful session summary, and browser-local persistence with a versioned format. A session records detected note events by default; raw audio recording is outside this stage.
 

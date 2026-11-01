@@ -7,7 +7,7 @@ npm ci
 npm run dev
 ```
 
-Keep changes focused on a stage or a clearly defined fix. Music and instrument rules belong in the pure domain; React components present those rules. Browser microphone and storage integrations belong in `src/platform/`. Do not request microphone access during app startup.
+Keep changes focused on a stage or a clearly defined fix. Music and instrument rules belong in the pure domain; React components present those rules. Browser microphone and storage integrations belong in `src/platform/`; pitch analysis belongs in `src/domain/pitch/`. Request microphone access only from a user action, never during app startup.
 
 ## Checks
 
@@ -17,6 +17,7 @@ npm run format
 npm run check
 npx playwright install chromium
 npm run test:browser
+npm run bench:pitch
 ```
 
 `npm run check` checks formatting, runs tests with coverage, type-checks, and builds. `npm run test:browser` builds and runs the desktop/mobile smoke suite. Coverage has an 85% minimum for lines, statements, functions, and branches. Add tests for meaningful behavior and edge cases; avoid tests that merely repeat implementation details or snapshot large screens.
@@ -26,7 +27,7 @@ npm run test:browser
 - Keep tests beside the code they exercise; shared setup lives in `src/test/`.
 - Keep production browser smoke tests in `tests/browser/`; they cover desktop and mobile Chromium emulation under `/scale-dojo/`. Install Chromium with `npx playwright install --with-deps chromium` on Linux CI.
 - Inspect desktop/mobile screenshots in `test-results/` after UI changes. Browser tests observe real output nodes and sample their audio signal; this does not validate physical speakers or microphone input.
-- Add deterministic microphone audio fixtures in stage 2.
+- Build audio test signals with `src/test/audioFixtures.ts`, which is seeded and deterministic. Rerun `npm run bench:pitch` after changing the pitch detector and update the stage 2 results.
 - Distinguish mocked/synthetic audio checks from real microphone validation in change notes.
 
 Use the checked-in lockfile. Commit dependency updates together with `package-lock.json`; keep generated `dist/`, `coverage/`, and `node_modules/` out of version control.

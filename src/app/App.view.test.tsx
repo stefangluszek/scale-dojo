@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotePlayer } from '../platform/audio/NotePlayer';
+import { playbackStatus } from '../test/renderApp';
 import { App } from './App';
 
 afterEach(() => vi.restoreAllMocks());
@@ -149,7 +150,7 @@ describe('zen mode', () => {
     expect(open).toHaveClass('fret-playing');
 
     await user.keyboard('?');
-    expect(screen.getByRole('status')).toHaveTextContent('Playing');
+    expect(playbackStatus()).toHaveTextContent('Playing');
     expect(open).toHaveClass('fret-playing');
     await user.keyboard('?');
 

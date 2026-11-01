@@ -40,6 +40,8 @@ interface ScaleCircleProps {
   /** Absolute pitch of the root used for playback; other notes sit above it. */
   lowRoot: number;
   activeNote: number | null;
+  /** Pitch the microphone hears, lit in any octave. */
+  heardNote: number | null;
   onPlayNote: (midiNote: number) => void;
   onRootChange: (root: PitchClass) => void;
   onScaleChange: (scaleId: ScaleId) => void;
@@ -55,6 +57,7 @@ export function ScaleCircle({
   scaleId,
   lowRoot,
   activeNote,
+  heardNote,
   onPlayNote,
   onRootChange,
   onScaleChange,
@@ -69,8 +72,19 @@ export function ScaleCircle({
   // The circle has no octaves, so any octave of a playing pitch lights it up.
   const playingPitch =
     activeNote === null ? null : midiToPitchClass(activeNote);
-  const isPlaying = (semitones: number) =>
-    playingPitch === normalizePitchClass(root + semitones);
+  const heardPitch = heardNote === null ? null : midiToPitchClass(heardNote);
+  const cueClasses = (semitones: number) => {
+    const pitch = normalizePitchClass(root + semitones);
+    const classes = [
+      pitch === playingPitch && 'circle-playing',
+      pitch === heardPitch && 'circle-heard',
+    ].filter(Boolean);
+    return classes.length ? classes.join(' ') : undefined;
+  };
+  const heardLabel = (semitones: number) =>
+    normalizePitchClass(root + semitones) === heardPitch
+      ? ', matches heard note'
+      : '';
   const points = intervals
     .map((semitones) => `${POSITIONS[semitones]!.x},${POSITIONS[semitones]!.y}`)
     .join(' ');
@@ -141,8 +155,8 @@ export function ScaleCircle({
             >
               <button
                 type="button"
-                className={isPlaying(semitones) ? 'circle-playing' : undefined}
-                aria-label={`Play ${midiNoteName(midiNote)}, ${isRoot ? 'root' : `scale degree ${spokenDegree(degree)}`}`}
+                className={cueClasses(semitones)}
+                aria-label={`Play ${midiNoteName(midiNote)}, ${isRoot ? 'root' : `scale degree ${spokenDegree(degree)}`}${heardLabel(semitones)}`}
                 aria-keyshortcuts={String(index + 1)}
                 onClick={() => onPlayNote(midiNote)}
               >
@@ -169,8 +183,8 @@ export function ScaleCircle({
             >
               <button
                 type="button"
-                className={isPlaying(semitones) ? 'circle-playing' : undefined}
-                aria-label={`Play ${midiNoteName(midiNote)}, outside scale`}
+                className={cueClasses(semitones)}
+                aria-label={`Play ${midiNoteName(midiNote)}, outside scale${heardLabel(semitones)}`}
                 onClick={() => onPlayNote(midiNote)}
               >
                 {noteName(normalizePitchClass(root + semitones))}

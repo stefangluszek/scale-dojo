@@ -67,10 +67,17 @@ test.beforeEach(async ({ page }) => {
     };
     navigator.mediaDevices.getUserMedia = async () => {
       probe.microphoneRequests += 1;
-      throw new Error('Stage 1 must not request the microphone');
+      throw new Error('These tests must not request the microphone');
     };
   });
 });
+
+/** The playback panel's status; the listening panel has its own. */
+function playbackStatus(page: Page) {
+  return page
+    .getByRole('region', { name: 'Hear the scale' })
+    .getByRole('status');
+}
 
 /** The app opens in zen mode; the full page holds selectors and playback. */
 async function openFullPage(page: Page) {
@@ -314,7 +321,7 @@ test('click and keyboard notes produce real audio at the mapped pitch', async ({
       name: 'A1 string, fret 3, C2, root. Play note',
     }),
   ).toHaveClass(/fret-playing/);
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
   expect(await page.evaluate(() => window.audioProbe.contexts.length)).toBe(1);
   expect(await page.evaluate(() => window.audioProbe.microphoneRequests)).toBe(
     0,
@@ -372,7 +379,7 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
   await page.keyboard.press('Home');
   await expect(tempo).toHaveValue('40');
   await page.getByRole('button', { name: /Play ascending/ }).click();
-  await expect(page.getByRole('status')).toContainText('Playing');
+  await expect(playbackStatus(page)).toContainText('Playing');
   await expect
     .poll(() => page.evaluate(() => window.audioProbe.notes.length))
     .toBe(6);
@@ -384,7 +391,7 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
   ).toEqual([36, 38, 40, 43, 45, 48]);
   expect(ascending[1]!.time - ascending[0]!.time).toBeCloseTo(1.5, 5);
   await page.getByRole('button', { name: 'Stop playback' }).click();
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
   expect(
     await page.evaluate(() =>
       window.audioProbe.notes.every((note) => note.stops.at(-1) === 0),
@@ -406,10 +413,10 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
     ),
   ).toEqual([48, 45, 43, 40, 38, 36]);
   expect(descending[1]!.time - descending[0]!.time).toBeCloseTo(0.25, 5);
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
   await page.getByRole('button', { name: /Play ascending/ }).click();
   await page.getByRole('combobox', { name: 'Root note' }).selectOption('4');
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
   await expect(
     page.getByRole('button', { name: 'Stop playback' }),
   ).toBeDisabled();
@@ -417,12 +424,12 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
   await page
     .getByRole('combobox', { name: 'Scale', exact: true })
     .selectOption('major');
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
   await page.getByRole('button', { name: /Play ascending/ }).click();
   await tempo.focus();
   await page.keyboard.press('ArrowLeft');
   await expect(tempo).toHaveValue('235');
-  await expect(page.getByRole('status')).toHaveText('Ready to play');
+  await expect(playbackStatus(page)).toHaveText('Ready to play');
 });
 
 test('audio unavailability leaves the visual explorer usable', async ({

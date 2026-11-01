@@ -43,3 +43,25 @@ export function noteAtFret(
   assertMidiNote(midiNote);
   return midiNote;
 }
+
+export interface FretPosition {
+  stringIndex: number;
+  fret: number;
+}
+
+/**
+ * Every place an absolute pitch can be played, lowest string first. A pitch
+ * alone can't tell which of these was used.
+ */
+export function positionsOfNote(
+  instrument: FrettedInstrument,
+  midiNote: number,
+  highestFret = instrument.fretCount,
+): FretPosition[] {
+  assertMidiNote(midiNote);
+  const lastFret = Math.min(highestFret, instrument.fretCount);
+  return instrument.tuning.flatMap((openNote, stringIndex) => {
+    const fret = midiNote - openNote;
+    return fret >= 0 && fret <= lastFret ? [{ stringIndex, fret }] : [];
+  });
+}
