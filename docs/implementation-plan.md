@@ -23,11 +23,11 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 ## Stage 1 — Bass scale explorer
 
-**Status:** next.
+**Status:** implemented, including the requested synthesized playback scope (2026-11-01).
 
 **Dependencies:** stage 0 music and instrument domain.
 
-**Deliverables:** responsive fretboard for standard four-string bass; clear root and scale-note markers; fret numbers, open-string labels, and an accessible equivalent to the visual representation. Start with a practical fixed range, such as open strings through fret 12, before adding optional range controls.
+**Deliverables:** responsive standard four-string bass fretboard, open through fret 12; root and scale-note markers; fret numbers and open-string labels; a semantic table with keyboard-accessible, fully labeled note buttons; click-to-hear chips and fret positions; ascending/descending one-octave scale playback with adjustable tempo and Stop; desktop/mobile production browser smoke tests integrated into CI.
 
 **Acceptance criteria:**
 
@@ -36,13 +36,23 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 - Root notes and other scale notes have text or shape cues as well as color.
 - String orientation and tuning are explicit.
 - The screen remains usable on a narrow mobile viewport, with intentional fretboard scrolling if needed.
-- A production-build browser smoke test loads the app under `/scale-dojo/` and exercises scale selection.
+- Clicking or keyboard-activating a chip or fret plays its absolute pitch through Web Audio. Off-scale fret positions can also be heard. All matching absolute-pitch positions receive a playing cue without implying a fingering.
+- Ascending playback starts at the first selected root at or above E1 and includes the upper root; descending playback reverses that sequence. The visible octave range updates with selection. Every sequence fits within the displayed bass range.
+- Tempo is adjustable from 40 to 240 BPM, at one note per beat. New playback replaces the previous sequence. Stop, root/scale/tempo changes, page backgrounding, and teardown cancel scheduled playback; pending audio startup cannot restart it.
+- Audio starts only after user activation. Audio failures are visible and recoverable without disabling the visual explorer. Oscillators/gain nodes are disconnected on Stop/completion; the reusable context closes on teardown.
+- Production-build browser smoke tests load the app under `/scale-dojo/`, exercise scale selection, responsive layout, keyboard access, real audio output, playback direction/tempo, cancellation, and unavailable audio on desktop and mobile emulation.
+- Microphone detection, live input feedback, and session recording remain outside Stage 1.
 
-**Tests:** representative open strings and frets, repeated pitch positions, root markers, scale changes, keyboard-accessible controls, and a Playwright smoke test. Visually inspect desktop and mobile layouts.
+**Tests:** known open/fretted notes, octave boundaries, repeated pitch positions, root markers, shared scale changes, every root/scale playback range, MIDI frequency conversion, keyboard note activation, both playback directions and tempo, gain envelopes, completion/replacement/Stop, pending-start cancellation, visibility/unmount cleanup, and audio error recovery. Playwright observes real oscillator schedules and analyser output without replacing synthesis.
 
-**Next-session prompt:**
+**Verified outcome:**
 
-> Implement stage 1 from docs/implementation-plan.md. Read README.md and docs/architecture.md first. Build the standard four-string bass fretboard using the existing music and instrument domain, keep root and scale selection synchronized with the note chips, and add accessible labels plus desktop/mobile browser smoke coverage. Do not add microphone listening or session recording. Run npm run check and the new browser smoke test, then update the plan with the verified outcome.
+- `npm run check`: 72 unit/component tests passed; formatting, all 85% coverage thresholds, type checking, and production build passed.
+- `npm run test:browser`: 8 tests passed across Chromium desktop (1440×1000) and mobile emulation (390×844), with an additional 320px document-overflow assertion.
+- Desktop/mobile production screenshots were visually inspected: readable controls, clear root cues, and contained fretboard scrolling with sticky string labels.
+- Browser checks confirm a real synthesized signal, correct frequencies, scheduled note order/tempo, and no microphone requests. Physical phones, speakers/headphones, other browser engines, and assistive-technology listening have not been manually validated.
+
+**Next session:** stage 2 microphone input and live feedback. Preserve the output-only playback boundary and benchmark low-bass pitch detection before choosing an input implementation.
 
 ## Stage 2 — Microphone input and live note feedback
 

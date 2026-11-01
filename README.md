@@ -1,20 +1,26 @@
 # Scale Dojo
 
-A browser app for practicing musical scales, starting with bass guitar. Choose a root and a scale, learn its notes, and eventually see them on an instrument, hear feedback from your microphone, and review the notes you played.
+A browser app for practicing musical scales, starting with bass guitar. Choose a root and a scale, find its notes on the fretboard, and hear individual notes or an ascending/descending scale.
 
 Scale Dojo is a static web app intended for **GitHub Pages**. It runs in the browser without a backend, account, or API key.
 
 ## Current status
 
-This repository contains the project foundation, not the complete practice app:
+Stages 0 and 1 are implemented:
 
 - Root and scale selection for major, natural minor, major pentatonic, and minor pentatonic scales.
-- Scale-note chips, with the root identified.
+- Clickable scale-note chips, with the root identified.
+- A responsive four-string bass fretboard from open strings through fret 12, with labeled notes, accessible root markers, and intentional horizontal scrolling on small screens.
+- Click-to-hear synthesized notes and one-octave ascending/descending scale playback at 40–240 BPM, with Stop and matching-pitch highlights.
 - A tested music domain and standard four-string bass definition and fret-position mapping.
-- A React app, automated tests, coverage checks, and a production build.
+- A React app, unit/component tests, coverage checks, a production build, and desktop/mobile Playwright smoke tests.
 - CI and a manually triggered GitHub Pages deployment workflow.
 
-The fretboard, microphone input, live note feedback, session recording, and other instrument views are planned stages. The app currently does not request microphone access or record audio. Note labels use sharps for accidentals; full key-aware spelling is future work.
+Microphone input, live note feedback, session recording, and other instrument views remain planned stages. The app does not request microphone access or record audio. Note labels use sharps for accidentals; full key-aware spelling is future work.
+
+The fretboard shows G2 at the top and E1 at the bottom. Root notes have an **R** and a square marker; other scale notes have a dot. Every note button names its string, fret, octave, and scale membership. Chips play the corresponding note in the scale's displayed playback octave. Playback starts at the lowest root available above or at E1 and includes the upper root, or reverses that sequence for descending playback. Changing root, scale, or tempo stops playback; tap Play again to use the new settings. Backgrounding the page also stops playback.
+
+Audio starts only after a click or keyboard activation and uses synthesized triangle tones, not recorded bass samples. An unavailable audio engine shows a recoverable message while the fretboard remains usable. Browser tests verify real Web Audio output in Chromium desktop and mobile emulation; physical phones, speaker quality, and other browser engines have not been validated.
 
 ## Run locally
 
@@ -32,13 +38,15 @@ npm run check         # Formatting, tests with coverage, type checking, producti
 npm run test:watch    # Tests while developing
 npm run format       # Apply formatting
 npm run preview      # Serve an existing production build locally
+npx playwright install chromium # One-time browser setup; CI also uses --with-deps
+npm run test:browser  # Build, then test /scale-dojo/ on desktop/mobile Chromium
 ```
 
-`npm run build` writes the static site to `dist/`. Coverage reports are written to `coverage/`; the project enforces an 85% minimum for lines, statements, functions, and branches. Browser smoke tests will be added with the fretboard in stage 1; no browser automation is included in this bootstrap.
+`npm run build` writes the static site to `dist/`. Coverage reports are written to `coverage/`; the project enforces an 85% minimum for lines, statements, functions, and branches. Browser tests start their own production preview on port 4173 and write screenshots, failure traces, and an HTML report to ignored `test-results/` and `playwright-report/` directories.
 
 ## Technology and structure
 
-**React + TypeScript + Vite** provides a small, client-only app with typed music and instrument models. Plain CSS keeps the initial UI easy to maintain. **Vitest + Testing Library** tests the music rules and user-visible interactions. Web Audio and microphone APIs will be added behind an adapter when live listening is implemented.
+**React + TypeScript + Vite** provides a small, client-only app with typed music and instrument models. Plain CSS keeps the UI easy to maintain. **Vitest + Testing Library** tests the music rules and user-visible interactions; **Playwright** exercises the production app. Web Audio synthesis lives behind an output-only adapter. Microphone acquisition will be added separately when live listening is implemented.
 
 ```text
 src/
@@ -47,17 +55,18 @@ src/
     music/              Notes, scale definitions, and scale membership
     instruments/        Instrument definitions and fret-position mapping
   features/
-    scales/             Scale selection and note display
-    instruments/        Planned instrument visualizations
+    scales/             Scale selection, note display, and playback controls
+    instruments/        Accessible bass fretboard
     practice/           Planned live practice feedback
     sessions/           Planned captured-note sequence review
   platform/
-    audio/              Planned browser microphone and audio integration
+    audio/              Web Audio synthesis and resource lifecycle
     storage/            Planned browser-local persistence
   test/                 Shared test setup
 docs/
   architecture.md
   implementation-plan.md
+tests/browser/          Production-build desktop/mobile smoke tests
 ```
 
 See [architecture](docs/architecture.md) for the decisions and boundaries, [implementation plan](docs/implementation-plan.md) for session-sized stages, and [contributing](CONTRIBUTING.md) for the development workflow.

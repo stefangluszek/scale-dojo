@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { midiNoteName } from '../../domain/music/playback';
 import {
   getScaleNotes,
   NOTE_NAMES,
@@ -8,9 +8,23 @@ import {
   type ScaleId,
 } from '../../domain/music/scales';
 
-export function ScaleExplorer() {
-  const [root, setRoot] = useState<PitchClass>(0);
-  const [scaleId, setScaleId] = useState<ScaleId>('major-pentatonic');
+interface ScaleExplorerProps {
+  root: PitchClass;
+  scaleId: ScaleId;
+  playbackNotes: readonly number[];
+  onRootChange: (root: PitchClass) => void;
+  onScaleChange: (scaleId: ScaleId) => void;
+  onPlayNote: (note: number) => void;
+}
+
+export function ScaleExplorer({
+  root,
+  scaleId,
+  playbackNotes,
+  onRootChange,
+  onScaleChange,
+  onPlayNote,
+}: ScaleExplorerProps) {
   const notes = getScaleNotes(root, scaleId);
   const scale = SCALE_DEFINITIONS.find(
     (definition) => definition.id === scaleId,
@@ -32,7 +46,7 @@ export function ScaleExplorer() {
           <select
             value={root}
             onChange={(event) =>
-              setRoot(Number(event.target.value) as PitchClass)
+              onRootChange(Number(event.target.value) as PitchClass)
             }
           >
             {NOTE_NAMES.map((name, pitchClass) => (
@@ -46,7 +60,7 @@ export function ScaleExplorer() {
           Scale
           <select
             value={scaleId}
-            onChange={(event) => setScaleId(event.target.value as ScaleId)}
+            onChange={(event) => onScaleChange(event.target.value as ScaleId)}
           >
             {SCALE_DEFINITIONS.map((definition) => (
               <option key={definition.id} value={definition.id}>
@@ -66,11 +80,18 @@ export function ScaleExplorer() {
         </div>
         <ol className="note-list" aria-label="Notes in the selected scale">
           {notes.map((note, index) => (
-            <li key={note} className={index === 0 ? 'note note-root' : 'note'}>
-              <span className="note-name">{noteName(note)}</span>
-              <span className="note-caption">
-                {index === 0 ? 'Root' : `Note ${index + 1}`}
-              </span>
+            <li key={note}>
+              <button
+                type="button"
+                className={index === 0 ? 'note note-root' : 'note'}
+                aria-label={`Play ${midiNoteName(playbackNotes[index]!)}, ${index === 0 ? 'root' : `note ${index + 1}`}`}
+                onClick={() => onPlayNote(playbackNotes[index]!)}
+              >
+                <span className="note-name">{noteName(note)}</span>
+                <span className="note-caption">
+                  {index === 0 ? 'Root' : `Note ${index + 1}`}
+                </span>
+              </button>
             </li>
           ))}
         </ol>

@@ -25,7 +25,7 @@ describe('scale explorer', () => {
     );
     expect(displayedNotes()).toEqual(['C', 'D', 'E', 'G', 'A']);
     expect(
-      screen.getByText('Root', { exact: true }).closest('li'),
+      screen.getByRole('button', { name: 'Play C2, root' }),
     ).toHaveTextContent('C');
   });
 
