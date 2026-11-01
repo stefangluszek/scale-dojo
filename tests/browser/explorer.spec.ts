@@ -130,6 +130,54 @@ test('zen mode shows only the scale and fretboard, and ? toggles the full page',
   expect(errors).toEqual([]);
 });
 
+test('zen circle center changes the scale and number keys play its notes', async ({
+  page,
+}, testInfo) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'C major pentatonic' }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose a scale' });
+  await expect(picker).toBeVisible();
+  await expect(picker).toBeInViewport({ ratio: 1 });
+  await page.getByRole('radio', { name: 'A', exact: true }).check();
+  await page.getByRole('radio', { name: 'Natural minor' }).check();
+  await expect(page.locator('.practice-space')).toHaveAttribute(
+    'data-quality',
+    'minor',
+  );
+  await page.screenshot({ path: testInfo.outputPath('zen-picker.png') });
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'A natural minor' }),
+  ).toBeFocused();
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+
+  // A natural minor from A1: 3 is C2 and 8 is A2, the root an octave up.
+  await page.keyboard.press('3');
+  await expect
+    .poll(() => page.evaluate(() => window.audioProbe.notes.length))
+    .toBe(1);
+  expect(
+    await page.evaluate(() => window.audioProbe.notes[0]!.frequency),
+  ).toBeCloseTo(65.4064, 4);
+  await expect(
+    page.getByRole('button', { name: 'Play C2, scale degree flat 3' }),
+  ).toHaveClass(/circle-playing/);
+  await page.keyboard.press('8');
+  await expect
+    .poll(() => page.evaluate(() => window.audioProbe.notes.length))
+    .toBe(2);
+  expect(
+    await page.evaluate(() => window.audioProbe.notes[1]!.frequency),
+  ).toBeCloseTo(110, 4);
+  await page.keyboard.press('9');
+  await page.keyboard.press('?');
+  await expect(page.getByRole('combobox', { name: 'Root note' })).toHaveValue(
+    '9',
+  );
+  expect(await page.evaluate(() => window.audioProbe.notes.length)).toBe(2);
+});
+
 test('production app keeps selectors, chips and accessible fretboard synchronized', async ({
   page,
 }, testInfo) => {

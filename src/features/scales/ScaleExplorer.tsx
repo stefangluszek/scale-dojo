@@ -90,6 +90,8 @@ export function ScaleExplorer({
           lowRoot={playbackNotes[0]!}
           activeNote={activeNote}
           onPlayNote={onPlayNote}
+          onRootChange={onRootChange}
+          onScaleChange={onScaleChange}
         />
         {!minimal && (
           <div className="scale-guide">
@@ -151,6 +153,12 @@ export function ScaleExplorer({
             </p>
             <p className="explorer-hint">
               Start on the root. Play slowly, listen closely, and return home.
+            </p>
+            <p className="shortcut-hint">
+              Tap the center of the circle to change the scale. Press{' '}
+              <kbd>1</kbd>–<kbd>{playbackNotes.length}</kbd> to play its notes
+              in order, ending on the root an octave up, and <kbd>?</kbd> for
+              zen mode.
             </p>
           </div>
         )}

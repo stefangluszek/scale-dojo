@@ -10,19 +10,36 @@ import { BassFretboard } from '../features/instruments/BassFretboard';
 import { ScaleExplorer } from '../features/scales/ScaleExplorer';
 import { ScalePlayback } from '../features/scales/ScalePlayback';
 import { useNotePlayback } from '../features/scales/useNotePlayback';
-import { useViewMode, VIEW_TOGGLE_KEY } from './useViewMode';
+import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+
+/** Zen shows only the scale circle and fretboard; full adds everything else. */
+type ViewMode = 'zen' | 'full';
+
+/** Key that toggles between zen mode and the full page. */
+const VIEW_TOGGLE_KEY = '?';
 
 export function App() {
   const [root, setRoot] = useState<PitchClass>(0);
   const [scaleId, setScaleId] = useState<ScaleId>('major-pentatonic');
   const [tempo, setTempo] = useState(90);
   const playback = useNotePlayback();
-  const { view, toggle } = useViewMode();
+  const [view, setView] = useState<ViewMode>('zen');
   const zen = view === 'zen';
   const notes = scalePlaybackNotes(root, scaleId, STANDARD_BASS.tuning[0]);
   const playNote = (note: number) => {
     void playback.play([note], tempo);
   };
+  const toggleView = () =>
+    setView((current) => (current === 'zen' ? 'full' : 'zen'));
+
+  useKeyboardShortcuts({
+    [VIEW_TOGGLE_KEY]: toggleView,
+    // 1 plays the root, 2 the next scale note, and so on; the last number
+    // plays the root an octave up.
+    ...Object.fromEntries(
+      notes.map((note, index) => [String(index + 1), () => playNote(note)]),
+    ),
+  });
 
   return (
     <>
@@ -47,7 +64,7 @@ export function App() {
               aria-label={zen ? 'Show full page' : 'Enter zen mode'}
               aria-keyshortcuts={VIEW_TOGGLE_KEY}
               title={`${zen ? 'Show full page' : 'Zen mode'} (${VIEW_TOGGLE_KEY})`}
-              onClick={toggle}
+              onClick={toggleView}
             >
               {zen ? (
                 <span aria-hidden="true">{VIEW_TOGGLE_KEY}</span>
