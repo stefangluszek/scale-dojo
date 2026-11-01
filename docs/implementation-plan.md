@@ -158,6 +158,8 @@ MPM was chosen: it is the only one without octave errors on the octave trap and 
 - Browser capture uses a deterministic fake E1/F1 microphone recording and verifies stored notes, frozen classification, settings after reload, clear, and interrupted-session recovery without a new microphone request. Component/domain tests also cover held/repeated notes, permission cancellation, empty sessions, device loss/backgrounding, invalid storage, and retry after failed saves.
 - Desktop, mobile, and 320px session-review screenshots were visually inspected. Real-bass session segmentation and other browser engines remain unverified.
 
+**Follow-up (2026-11-01): sessions follow listening.** Separate Start/Stop session controls were removed at the project owner's request. Each listening run is now a session: capture begins when the microphone is ready after Start listening and finishes on Stop listening or any interruption. Runs with no detected notes are discarded, and checkpoints saved before the first note are dropped on reload, so checking the microphone doesn't fill the history. History can be browsed, and earlier sessions cleared, while listening; zen mode shows the sessions panel only for storage problems. Verified with `npm run check` (199 unit/component tests) and all 24 production-browser cases on desktop and mobile Chromium, using the deterministic fake microphone; recording-state screenshots at desktop and 320px widths were visually inspected. Real-microphone use of the merged controls has not been checked.
+
 **Next stage:** additional instruments and tunings (stage 4). Real-bass note segmentation should also be tried during normal practice.
 
 ## Stage 4 — Additional instruments and tunings

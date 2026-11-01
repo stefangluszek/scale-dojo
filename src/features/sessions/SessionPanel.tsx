@@ -18,27 +18,28 @@ function seconds(ms: number) {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
+function noteCount(count: number) {
+  return `${count} ${count === 1 ? 'note' : 'notes'}`;
+}
+
 export function SessionPanel({
   sessions,
   root,
   scaleId,
   minimal = false,
-  onStart,
-  onStop,
 }: {
   sessions: PracticeSessions;
   root: PitchClass;
   scaleId: ScaleId;
+  /** Zen mode: only storage problems; listening has its own controls. */
   minimal?: boolean;
-  onStart: () => void;
-  onStop: () => void;
 }) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const running = sessions.status !== 'idle';
-  const selected = sessions.status === 'waiting' ? null : sessions.selected;
+  const { live, selected } = sessions;
+  const isLive = selected !== null && selected.id === live?.id;
   const summary = selected && sessionSummary(selected);
   const title = selected && scaleName(selected.root, selected.scaleId);
-  if (minimal && !running && !sessions.problem) return null;
+  if (minimal && !sessions.problem) return null;
 
   return (
     <section
@@ -46,32 +47,22 @@ export function SessionPanel({
       aria-labelledby="sessions-heading"
     >
       <div className="session-heading">
-        <div>
-          <h2 id="sessions-heading" tabIndex={-1}>
-            Practice sessions
-          </h2>
-          {!minimal && (
-            <p className="notation-note">
-              Capture the notes you play, then review where they fit. Notes stay
-              on this device; audio is never recorded.
-            </p>
-          )}
-        </div>
-        <button
-          className="session-primary"
-          onClick={running ? onStop : onStart}
-        >
-          {running ? 'Stop session' : 'Start session'}
-        </button>
+        <h2 id="sessions-heading" tabIndex={-1}>
+          Practice sessions
+        </h2>
+        {!minimal && (
+          <p className="notation-note">
+            Each time you listen, the notes you play are saved as a session to
+            review. Notes stay on this device; audio is never recorded.
+          </p>
+        )}
       </div>
       <p className="session-status" role="status">
-        {sessions.status === 'waiting'
-          ? 'Waiting for the microphone. Capture starts when listening is ready.'
-          : sessions.status === 'recording'
-            ? `Capturing ${title} · ${summary!.total} notes · ${seconds(selected!.durationMs)}. Stop to review.`
-            : selected
-              ? 'Session ready to review.'
-              : 'No sessions yet. Start a session and play your bass.'}
+        {live
+          ? `Recording ${scaleName(live.root, live.scaleId)} · ${noteCount(live.events.length)} · ${seconds(live.durationMs)}. Stop listening to finish.`
+          : selected
+            ? 'Session ready to review.'
+            : 'No sessions yet. Start listening and play your bass.'}
       </p>
       {sessions.problem && (
         <div className="storage-warning" role="alert">
@@ -89,10 +80,10 @@ export function SessionPanel({
       )}
       {!minimal && (
         <>
-          {!running && (
+          {!live && (
             <p className="notation-note">
-              Next session: {scaleName(root, scaleId)} · 4-string bass. Starting
-              a new session keeps earlier sessions.
+              Next session: {scaleName(root, scaleId)} · 4-string bass. Starts
+              when you start listening; earlier sessions are kept.
             </p>
           )}
           {selected && summary && (
@@ -106,7 +97,7 @@ export function SessionPanel({
                     {seconds(selected.durationMs)}
                   </p>
                 </div>
-                {!running && (
+                {!isLive && (
                   <button
                     className="session-secondary"
                     onClick={() => setConfirmId(selected.id)}
@@ -125,7 +116,7 @@ export function SessionPanel({
                   closed. The captured notes are kept below.
                 </p>
               )}
-              {confirmId === selected.id && !running && (
+              {confirmId === selected.id && !isLive && (
                 <div className="session-clear">
                   <p>Clear this session from this device?</p>
                   <button
@@ -199,14 +190,14 @@ export function SessionPanel({
                 </>
               ) : (
                 <p className="session-empty">
-                  {running
+                  {isLive
                     ? 'Play one note at a time. Silence and unclear sound are not counted.'
-                    : 'No notes captured. Start a new session and play one note at a time.'}
+                    : 'No notes captured.'}
                 </p>
               )}
               {!sessions.problem && (
                 <p className="notation-note">
-                  {running
+                  {isLive
                     ? 'Saving on this device as you play.'
                     : 'Saved on this device.'}
                 </p>
@@ -220,7 +211,6 @@ export function SessionPanel({
                 {sessions.sessions.map((session) => (
                   <li key={session.id}>
                     <button
-                      disabled={running}
                       aria-pressed={selected?.id === session.id}
                       onClick={() => {
                         sessions.select(session.id);
@@ -232,7 +222,8 @@ export function SessionPanel({
                       </strong>
                       <span>
                         {new Date(session.startedAt).toLocaleString()} ·{' '}
-                        {session.events.length} notes
+                        {noteCount(session.events.length)}
+                        {session.id === live?.id && ' · recording'}
                       </span>
                     </button>
                   </li>

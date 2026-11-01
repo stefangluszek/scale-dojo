@@ -46,9 +46,11 @@ export function App() {
     preferences.update((settings) => ({ ...settings, view }));
   const playback = useNotePlayback();
   const sessions = usePracticeSessions();
+  // Every listening run is a session, frozen to the scale chosen when the
+  // microphone becomes ready.
   const listening = useLiveNote({
+    onReady: () => sessions.begin({ root, scaleId, instrument: STANDARD_BASS }),
     onReading: sessions.onReading,
-    onReady: sessions.ready,
     onStop: sessions.finish,
   });
   const heardNote =
@@ -61,14 +63,6 @@ export function App() {
     void playback.play([note], tempo);
   };
   const toggleView = () => setView(zen ? 'full' : 'zen');
-  const startSession = () => {
-    playback.stop();
-    sessions.begin(
-      { root, scaleId, instrument: STANDARD_BASS },
-      listening.status === 'listening',
-    );
-    if (listening.status === 'idle') listening.start();
-  };
 
   useKeyboardShortcuts({
     [VIEW_TOGGLE_KEY]: toggleView,
@@ -220,8 +214,6 @@ export function App() {
               root={root}
               scaleId={scaleId}
               minimal={zen}
-              onStart={startSession}
-              onStop={listening.stop}
             />
             {/* Playback controls are hidden in zen; notes can still fail. */}
             {zen && playback.error && (
@@ -237,8 +229,8 @@ export function App() {
               <h2 id="next-heading">From knowing to hearing.</h2>
               <p>
                 Explore the neck, hear each scale, then play it back on your
-                bass and see which notes belong. Capture a session to review the
-                notes you played and see where they fit.
+                bass and see which notes belong. Each time you listen is saved
+                as a session, so you can review the notes you played.
               </p>
               <ol className="practice-steps">
                 <li>
