@@ -112,7 +112,8 @@ export function ListenPanel({
           <h3 id="listen-heading">Play &amp; listen</h3>
           <p className="notation-note">
             Play one note at a time near your microphone. Listening happens on
-            this device; nothing is recorded or sent.
+            this device. Sessions save detected notes; audio is never recorded
+            or sent.
           </p>
         </div>
       )}

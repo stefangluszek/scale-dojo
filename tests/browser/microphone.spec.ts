@@ -278,3 +278,110 @@ test('a blocked microphone explains what to do and leaves the explorer usable', 
     .poll(() => page.evaluate(() => window.microphoneProbe.requests))
     .toBe(2);
 });
+
+test('captures and reviews a session, preserving its scale and the latest preferences across reload', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  const sessions = page.getByRole('region', { name: 'Practice sessions' });
+  await expect(
+    sessions.getByRole('heading', { name: 'Practice sessions' }),
+  ).toBeFocused();
+  await sessions.getByRole('button', { name: 'Start session' }).click();
+  const notes = sessions.getByRole('list', { name: 'Captured notes' });
+  await expect(
+    notes.getByRole('listitem').filter({ hasText: 'E1' }).first(),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(
+    notes.getByRole('listitem').filter({ hasText: 'F1' }).first(),
+  ).toContainText('Outside scale', { timeout: 10_000 });
+  await sessions.getByRole('button', { name: 'Stop session' }).click();
+  await expectReleased(page);
+  const count = await notes.getByRole('listitem').count();
+  expect(count).toBeGreaterThanOrEqual(2);
+  // The next scale differs; saved classifications must not change.
+  await page.getByRole('combobox', { name: 'Root note' }).selectOption('9');
+  await page
+    .getByRole('combobox', { name: 'Scale', exact: true })
+    .selectOption('natural-minor');
+  await page.getByRole('slider', { name: 'Tempo' }).focus();
+  await page.keyboard.press('End');
+  await page.keyboard.press('ArrowLeft');
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: 'Root note' })).toHaveValue(
+    '9',
+  );
+  await expect(
+    page.getByRole('combobox', { name: 'Scale', exact: true }),
+  ).toHaveValue('natural-minor');
+  await expect(page.getByRole('slider', { name: 'Tempo' })).toHaveValue('235');
+  await expect(notes.getByRole('listitem')).toHaveCount(count);
+  await expect(
+    notes.getByRole('listitem').filter({ hasText: 'F1' }).first(),
+  ).toContainText('Outside scale');
+  expect(await page.evaluate(() => window.microphoneProbe.requests)).toBe(0);
+  await sessions.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath('session-review.png'),
+    fullPage: true,
+  });
+  if (testInfo.project.name.startsWith('mobile')) {
+    await page.setViewportSize({ width: 320, height: 700 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await sessions.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath('session-review-narrow.png'),
+      fullPage: true,
+    });
+  }
+  await sessions.getByRole('button', { name: 'Clear session' }).click();
+  await sessions.getByRole('button', { name: 'Confirm clear' }).click();
+  await page.reload();
+  await expect(sessions.getByRole('status')).toContainText('No sessions yet');
+  await expect(page.getByRole('combobox', { name: 'Root note' })).toHaveValue(
+    '9',
+  );
+  // Zen is a preference too, while listening always stays off after reload.
+  await page.getByRole('button', { name: 'Enter zen mode' }).click();
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: 'Show full page' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'A natural minor' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Start listening' }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('recovers an interrupted capture after reloading without reopening the microphone', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  const sessions = page.getByRole('region', { name: 'Practice sessions' });
+  await sessions.getByRole('button', { name: 'Start session' }).click();
+  await expect(
+    sessions.getByRole('list', { name: 'Captured notes' }),
+  ).toContainText('E1', { timeout: 10_000 });
+  await page.reload();
+  await expect(
+    sessions.getByText(/Capture ended when listening was interrupted/),
+  ).toBeVisible();
+  await expect(
+    sessions.getByRole('list', { name: 'Captured notes' }),
+  ).toContainText('E1');
+  await expect(
+    sessions.getByRole('button', { name: 'Start session' }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.microphoneProbe.requests)).toBe(0);
+});
