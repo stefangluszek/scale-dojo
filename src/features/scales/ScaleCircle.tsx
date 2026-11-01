@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { midiNoteName } from '../../domain/music/playback';
 import {
   getScaleDefinition,
@@ -9,6 +9,7 @@ import {
   type PitchClass,
   type ScaleId,
 } from '../../domain/music/scales';
+import { ScalePicker } from './ScalePicker';
 
 /** Twelve evenly spaced semitones, clockwise from 12 o'clock. */
 const POSITIONS = Array.from({ length: 12 }, (_, semitones) => {
@@ -40,11 +41,14 @@ interface ScaleCircleProps {
   lowRoot: number;
   activeNote: number | null;
   onPlayNote: (midiNote: number) => void;
+  onRootChange: (root: PitchClass) => void;
+  onScaleChange: (scaleId: ScaleId) => void;
 }
 
 /**
  * A chromatic circle with the root at the top. Scale notes form a polygon
- * whose shape is the same for every root of a given scale.
+ * whose shape is the same for every root of a given scale. Its center opens a
+ * picker for the root and scale.
  */
 export function ScaleCircle({
   root,
@@ -52,7 +56,11 @@ export function ScaleCircle({
   lowRoot,
   activeNote,
   onPlayNote,
+  onRootChange,
+  onScaleChange,
 }: ScaleCircleProps) {
+  const [picking, setPicking] = useState(false);
+  const pickerToggle = useRef<HTMLButtonElement>(null);
   const scale = getScaleDefinition(scaleId);
   const intervals: readonly number[] = scale.intervals;
   const outside = POSITIONS.map((_, semitones) => semitones).filter(
@@ -68,7 +76,7 @@ export function ScaleCircle({
     .join(' ');
 
   return (
-    <div className="scale-circle">
+    <div className="scale-circle" data-picking={picking || undefined}>
       <svg
         className="circle-shape"
         viewBox="-1 -1 2 2"
@@ -81,14 +89,47 @@ export function ScaleCircle({
 
       <div className="circle-center" aria-live="polite" aria-atomic="true">
         <h3>
-          <span className="circle-root-name">{noteName(root)}</span>{' '}
-          <span className="circle-scale-name">{scale.name.toLowerCase()}</span>
+          <button
+            ref={pickerToggle}
+            type="button"
+            className="circle-picker-toggle"
+            title="Change root and scale"
+            aria-haspopup="dialog"
+            aria-expanded={picking}
+            aria-controls="scale-picker"
+            onClick={() => setPicking((open) => !open)}
+          >
+            <span className="circle-root-name">{noteName(root)}</span>{' '}
+            <span className="circle-scale-name">
+              {scale.name.toLowerCase()}
+              <svg
+                className="picker-chevron"
+                viewBox="0 0 10 6"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M1 1l4 4 4-4" />
+              </svg>
+            </span>
+          </button>
         </h3>
         <p>{intervals.length} notes</p>
       </div>
 
+      {picking && (
+        <ScalePicker
+          id="scale-picker"
+          root={root}
+          scaleId={scaleId}
+          opener={pickerToggle}
+          onRootChange={onRootChange}
+          onScaleChange={onScaleChange}
+          onClose={() => setPicking(false)}
+        />
+      )}
+
       <ol className="circle-notes" aria-label="Notes in the selected scale">
-        {intervals.map((semitones) => {
+        {intervals.map((semitones, index) => {
           const isRoot = semitones === 0;
           const midiNote = lowRoot + semitones;
           const degree = scaleDegreeLabel(semitones);
@@ -102,6 +143,7 @@ export function ScaleCircle({
                 type="button"
                 className={isPlaying(semitones) ? 'circle-playing' : undefined}
                 aria-label={`Play ${midiNoteName(midiNote)}, ${isRoot ? 'root' : `scale degree ${spokenDegree(degree)}`}`}
+                aria-keyshortcuts={String(index + 1)}
                 onClick={() => onPlayNote(midiNote)}
               >
                 <span className="note-name">

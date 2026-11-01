@@ -56,6 +56,8 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 **Follow-up (2026-11-01):** the page now opens in a zen mode with only the scale circle and fretboard; `?` or a header button toggles the full page with selectors, playback, and guides. Selection, focus on the toggle, and active playback highlights carry across views. Unit tests cover the default view, button and key toggling, ignored keys (form fields, modifiers, repeats), and zen audio errors; the browser suite checks that zen fits in one screen on desktop (1440×1000) and mobile (390×844) with no 320px overflow.
 
+**Follow-up (2026-11-01):** the circle's center now opens a root and scale picker in both views, and number keys play the scale's notes in order (`1` is the root; the last number is the root an octave up). Unit tests cover opening, live choices, keyboard use (arrows, Escape, focus return), closing on an outside click or tabbing away, sync with the selectors, number keys for each scale, and keys ignored in text fields, selects, with modifiers, and on repeat. A browser test changes the scale through the picker in zen mode and checks the pitches of the number keys through real Web Audio output.
+
 **Next session:** stage 2 microphone input and live feedback. Preserve the output-only playback boundary and benchmark low-bass pitch detection before choosing an input implementation.
 
 ## Stage 2 — Microphone input and live note feedback

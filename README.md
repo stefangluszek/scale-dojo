@@ -9,6 +9,8 @@ Scale Dojo is a static web app intended for **GitHub Pages**. It runs in the bro
 Stages 0 and 1 are implemented:
 
 - A zen mode, shown on load, with only the scale circle and the fretboard on a quiet page. Press **?** or the **?** button for the full page with the selectors, playback controls, and reading guides; press **?** or **Zen mode** to return. The chosen scale carries across both views. The view isn't saved, so each visit opens in zen mode.
+- A root and scale picker in the center of the circle: tap the scale's name to choose another root or scale. Choices apply immediately; **Done**, Escape, or a tap outside closes it. It works in both views and stays in sync with the full-page selectors.
+- Keyboard shortcuts: **1**, **2**, **3**, … play the scale's notes in order from the root, and the next number plays the root an octave up (**6** for pentatonic scales, **8** for seven-note scales). **?** toggles zen mode. Shortcuts are ignored while a dropdown has focus and with Ctrl, Alt, or Cmd held.
 - Root and scale selection for major, natural minor, major pentatonic, and minor pentatonic scales.
 - A scale circle: the twelve semitones clockwise with the root at the top, scale notes joined into the scale's shape, scale-degree labels (1, 2, ♭3, …), and frets between notes. Every position, including notes outside the scale, can be tapped to hear it.
 - Scale colors that follow the scale's mood: warm gold for major scales and dusk blue for minor scales, shared by the circle and the fretboard.

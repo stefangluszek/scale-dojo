@@ -273,6 +273,137 @@ select {
   font-size: 12px;
   color: #65715b;
 }
+/* The circle's center opens the root and scale picker. */
+.circle-picker-toggle {
+  display: block;
+  width: 100%;
+  padding: 10px 8px 8px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+.circle-picker-toggle:hover {
+  background: rgb(255 254 249 / 72%);
+}
+.circle-picker-toggle:focus-visible {
+  outline-offset: 1px;
+}
+.picker-chevron {
+  width: 9px;
+  height: 6px;
+  margin-left: 6px;
+  vertical-align: 2px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.6;
+}
+/* While picking, the circle fades behind the picker. */
+.scale-circle[data-picking] :is(.circle-shape, .circle-center, .circle-notes) {
+  opacity: 0.15;
+}
+.scale-circle[data-picking] .circle-note button {
+  pointer-events: none;
+}
+.scale-picker {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  gap: 14px;
+  width: min(300px, 100%);
+  padding: 18px;
+  border: 1px solid #dfe3d6;
+  border-radius: 18px;
+  background: #fffef9;
+  box-shadow: 0 12px 40px rgb(32 61 50 / 12%);
+  transform: translate(-50%, -50%);
+}
+.scale-picker fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.scale-picker legend {
+  margin-bottom: 8px;
+  padding: 0;
+  color: #6b755a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.picker-options {
+  display: grid;
+  gap: 6px;
+}
+.picker-roots {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.picker-scales {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.scale-picker label {
+  display: block;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+/* Native radios keep arrow-key selection; the label text is the chip. */
+.scale-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+.scale-picker label span {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: 1px solid #dfe3d6;
+  border-radius: 9px;
+  color: #203d32;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+.scale-picker label:hover span {
+  border-color: var(--scale-edge);
+}
+.scale-picker input:checked + span {
+  border-color: var(--root-bg);
+  background: var(--root-bg);
+  color: var(--root-ink);
+}
+.scale-picker input:focus-visible + span {
+  outline: 3px solid #a54d28;
+  outline-offset: 2px;
+}
+.picker-done {
+  justify-self: end;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid #cbd2be;
+  border-radius: 100px;
+  background: transparent;
+  color: #203d32;
+  font-size: 13px;
+  font-weight: 550;
+}
+.picker-done:hover {
+  border-color: #657748;
+}
 .circle-notes {
   position: absolute;
   inset: 0;
@@ -441,6 +572,28 @@ select {
 }
 .scale-guide .explorer-hint {
   margin-top: 18px;
+}
+.shortcut-hint {
+  margin-top: 10px;
+  color: #5d6954;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.shortcut-hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid #cbd2be;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fffef9;
+  color: #203d32;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
 }
 
 button {
@@ -865,6 +1018,17 @@ button:disabled {
   }
   .circle-note .note-name {
     font-size: 17px;
+  }
+  .scale-picker {
+    gap: 10px;
+    padding: 14px;
+  }
+  .picker-options {
+    gap: 5px;
+  }
+  .scale-picker label span {
+    min-height: 32px;
+    font-size: 12px;
   }
   .circle-root-name {
     font-size: 40px;
