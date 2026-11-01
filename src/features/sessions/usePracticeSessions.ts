@@ -8,22 +8,29 @@ import type { LiveReading } from '../../domain/pitch/stabilizer';
 import { isSessions, SESSIONS_KEY } from '../../platform/storage/sessions';
 import { useStoredState } from '../../platform/storage/useStoredState';
 
+/**
+ * Unfinished captures become interrupted reviews. A capture checkpointed
+ * before its first note has nothing to review, so it is dropped.
+ */
 const restoreSessions = (sessions: PracticeSession[]): PracticeSession[] =>
-  sessions.map((session) =>
-    session.status === 'recording'
-      ? { ...session, status: 'interrupted' }
-      : session,
-  );
+  sessions.flatMap((session) => {
+    if (session.status !== 'recording') return [session];
+    return session.events.length
+      ? [{ ...session, status: 'interrupted' as const }]
+      : [];
+  });
 
+/**
+ * Each listening run is one session: capture begins when the microphone is
+ * ready and ends when listening stops for any reason. Runs with no detected
+ * notes are discarded, so checking the microphone doesn't fill the history.
+ */
 export function usePracticeSessions() {
   const stored = useStoredState(SESSIONS_KEY, isSessions, [], restoreSessions);
   const [selectedId, setSelectedId] = useState<string | null>(
     stored.value[0]?.id ?? null,
   );
-  const [status, setStatus] = useState<'idle' | 'waiting' | 'recording'>(
-    'idle',
-  );
-  const pending = useRef<SessionContext | null>(null);
+  const [liveId, setLiveId] = useState<string | null>(null);
   const capture = useRef<SessionCapture | null>(null);
   const save = stored.update;
 
@@ -37,33 +44,23 @@ export function usePracticeSessions() {
     [save],
   );
 
-  const ready = useCallback(() => {
-    if (!pending.current || capture.current) return;
-    capture.current = new SessionCapture(
-      pending.current,
-      performance.now(),
-      Date.now(),
-      crypto.randomUUID(),
-    );
-    pending.current = null;
-    const session = capture.current.snapshot();
-    setSelectedId(session.id);
-    setStatus('recording');
-    commit(session);
-  }, [commit]);
-
-  const begin = (context: SessionContext, listening: boolean) => {
-    if (pending.current || capture.current) return;
-    pending.current = {
-      ...context,
-      instrument: {
-        ...context.instrument,
-        tuning: [...context.instrument.tuning],
-      },
-    };
-    setStatus('waiting');
-    if (listening) ready();
-  };
+  /** Call when the microphone is ready, with the context to freeze. */
+  const begin = useCallback(
+    (context: SessionContext) => {
+      if (capture.current) return;
+      capture.current = new SessionCapture(
+        context,
+        performance.now(),
+        Date.now(),
+        crypto.randomUUID(),
+      );
+      const session = capture.current.snapshot();
+      setSelectedId(session.id);
+      setLiveId(session.id);
+      commit(session);
+    },
+    [commit],
+  );
 
   const onReading = useCallback(
     (reading: LiveReading, time: number) => {
@@ -75,14 +72,19 @@ export function usePracticeSessions() {
 
   const finish = useCallback(
     (interrupted = false) => {
-      pending.current = null;
-      if (capture.current) {
-        commit(capture.current.finish(performance.now(), interrupted));
-        capture.current = null;
+      const current = capture.current;
+      capture.current = null;
+      setLiveId(null);
+      if (!current) return;
+      const session = current.finish(performance.now(), interrupted);
+      if (session.events.length) {
+        commit(session);
+        return;
       }
-      setStatus('idle');
+      save((sessions) => sessions.filter((item) => item.id !== session.id));
+      setSelectedId((id) => (id === session.id ? null : id));
     },
-    [commit],
+    [commit, save],
   );
 
   useEffect(() => {
@@ -101,22 +103,20 @@ export function usePracticeSessions() {
   }, [commit, finish]);
 
   const clear = (id: string) => {
-    if (capture.current || pending.current) return;
+    if (id === liveId) return;
     save((sessions) => sessions.filter((session) => session.id !== id));
     setSelectedId(null);
   };
 
-  const selected =
-    stored.value.find((session) => session.id === selectedId) ??
-    stored.value[0] ??
-    null;
+  const find = (id: string | null) =>
+    stored.value.find((session) => session.id === id) ?? null;
   return {
     sessions: stored.value,
-    selected,
+    selected: find(selectedId) ?? stored.value[0] ?? null,
     select: setSelectedId,
-    status,
+    /** The session being captured right now, if any. */
+    live: find(liveId),
     begin,
-    ready,
     onReading,
     finish,
     clear,
