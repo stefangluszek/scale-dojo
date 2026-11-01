@@ -52,6 +52,8 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 - Desktop/mobile production screenshots were visually inspected: readable controls, clear root cues, and contained fretboard scrolling with sticky string labels.
 - Browser checks confirm a real synthesized signal, correct frequencies, scheduled note order/tempo, and no microphone requests. Physical phones, speakers/headphones, other browser engines, and assistive-technology listening have not been manually validated.
 
+**Follow-up (2026-11-01):** the evenly spaced note chips were replaced by a scale circle (root at 12 o'clock, twelve semitones, scale notes joined into a polygon) with scale-degree labels, frets between notes, and playable outside-scale notes. Major scales use warm gold and minor scales dusk blue on both the circle and the fretboard; text and shape cues still identify roots and membership without color. GitHub Pages now deploys automatically after CI passes on `main`, replacing the bootstrap's manual-only deployment; manual dispatch remains available for redeploys.
+
 **Next session:** stage 2 microphone input and live feedback. Preserve the output-only playback boundary and benchmark low-bass pitch detection before choosing an input implementation.
 
 ## Stage 2 — Microphone input and live note feedback

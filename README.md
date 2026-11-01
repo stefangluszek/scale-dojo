@@ -9,16 +9,17 @@ Scale Dojo is a static web app intended for **GitHub Pages**. It runs in the bro
 Stages 0 and 1 are implemented:
 
 - Root and scale selection for major, natural minor, major pentatonic, and minor pentatonic scales.
-- Clickable scale-note chips, with the root identified.
+- A scale circle: the twelve semitones clockwise with the root at the top, scale notes joined into the scale's shape, scale-degree labels (1, 2, ♭3, …), and frets between notes. Every position, including notes outside the scale, can be tapped to hear it.
+- Scale colors that follow the scale's mood: warm gold for major scales and dusk blue for minor scales, shared by the circle and the fretboard.
 - A responsive four-string bass fretboard from open strings through fret 12, with labeled notes, accessible root markers, and intentional horizontal scrolling on small screens.
 - Click-to-hear synthesized notes and one-octave ascending/descending scale playback at 40–240 BPM, with Stop and matching-pitch highlights.
 - A tested music domain and standard four-string bass definition and fret-position mapping.
 - A React app, unit/component tests, coverage checks, a production build, and desktop/mobile Playwright smoke tests.
-- CI and a manually triggered GitHub Pages deployment workflow.
+- CI, and GitHub Pages deployment that publishes `main` automatically after CI passes.
 
 Microphone input, live note feedback, session recording, and other instrument views remain planned stages. The app does not request microphone access or record audio. Note labels use sharps for accidentals; full key-aware spelling is future work.
 
-The fretboard shows G2 at the top and E1 at the bottom. Root notes have an **R** and a square marker; other scale notes have a dot. Every note button names its string, fret, octave, and scale membership. Chips play the corresponding note in the scale's displayed playback octave. Playback starts at the lowest root available above or at E1 and includes the upper root, or reverses that sequence for descending playback. Changing root, scale, or tempo stops playback; tap Play again to use the new settings. Backgrounding the page also stops playback.
+The fretboard shows G2 at the top and E1 at the bottom. Root notes have an **R** and a square marker; other scale notes have a dot. Every note button names its string, fret, octave, and scale membership. Circle notes play in the scale's displayed playback octave. Because the circle has no octaves, a playing pitch lights up its note on the circle in any octave, while the fretboard highlights only the exact pitch. Playback starts at the lowest root available above or at E1 and includes the upper root, or reverses that sequence for descending playback. Changing root, scale, or tempo stops playback; tap Play again to use the new settings. Backgrounding the page also stops playback.
 
 Audio starts only after a click or keyboard activation and uses synthesized triangle tones, not recorded bass samples. An unavailable audio engine shows a recoverable message while the fretboard remains usable. Browser tests verify real Web Audio output in Chromium desktop and mobile emulation; physical phones, speaker quality, and other browser engines have not been validated.
 
@@ -73,14 +74,16 @@ See [architecture](docs/architecture.md) for the decisions and boundaries, [impl
 
 ## Deploy to GitHub Pages
 
-Deployment is intentionally manual during bootstrap:
+Every change that lands on `main` is published automatically:
 
-1. Merge the bootstrap or subsequent changes into `main`; the deployment workflow only deploys that branch.
-2. In the GitHub repository, open **Settings → Pages** and select **GitHub Actions** as the build source.
-3. Run **Deploy GitHub Pages** from the **Actions** tab using **Run workflow**, selecting the `main` branch.
-4. Use the deployment URL reported by the workflow. For this repository, the expected address is `https://stefangluszek.github.io/scale-dojo/` once Pages is enabled and deployment succeeds.
+1. One-time setup: in the GitHub repository, open **Settings → Pages** and select **GitHub Actions** as the build source.
+2. Merge changes into `main`. The **CI** workflow runs the full check and browser tests for that push.
+3. When that CI run succeeds, **Deploy GitHub Pages** checks out the same commit, runs `npm run check` again, and publishes `dist/`. If CI fails or is cancelled, nothing is published.
+4. The site is served at `https://stefangluszek.github.io/scale-dojo/`; each deployment run reports its URL.
 
-The Vite base path is `/scale-dojo/`, so production assets work under the repository path. Change that setting if the repository is renamed or a custom domain is introduced. A build or push alone does not publish the app. See [Vite's GitHub Pages guide](https://vite.dev/guide/static-deploy#github-pages).
+To redeploy without a new commit, run **Deploy GitHub Pages** from the **Actions** tab using **Run workflow** on the `main` branch. Pull requests and pushes to other branches run checks but never publish.
+
+The Vite base path is `/scale-dojo/`, so production assets work under the repository path. Change that setting if the repository is renamed or a custom domain is introduced. See [Vite's GitHub Pages guide](https://vite.dev/guide/static-deploy#github-pages).
 
 ## Product direction
 

@@ -35,6 +35,6 @@ Use the checked-in lockfile. Commit dependency updates together with `package-lo
 
 Describe the user-visible outcome, the checks performed, and any relevant limits. Update the implementation plan when a stage is completed, and keep README feature claims accurate. UI changes should be checked at desktop and narrow mobile sizes once browser coverage is introduced.
 
-GitHub Pages deployment is manually triggered after Pages is configured to use GitHub Actions. Routine pushes and pull requests run checks and do not publish the site. Preserve the `/scale-dojo/` base path unless the hosting location changes.
+GitHub Pages deployment runs automatically when CI succeeds for a push to `main`, and can be rerun manually from the Actions tab. Pull requests and pushes to other branches run checks and do not publish the site. Anything merged into `main` goes live once CI passes. Preserve the `/scale-dojo/` base path unless the hosting location changes.
 
 The repository does not yet declare a project license; do not assume a licensing choice when adding source or assets.

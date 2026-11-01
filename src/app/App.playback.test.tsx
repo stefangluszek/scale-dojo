@@ -109,6 +109,46 @@ describe('bass explorer and playback integration', () => {
     expect(play.mock.calls.at(-1)!.slice(0, 2)).toEqual([[29], 90]);
   });
 
+  it('lights circle notes by pitch class and plays outside notes from the circle', async () => {
+    const play = vi
+      .spyOn(NotePlayer.prototype, 'play')
+      .mockImplementation(async (notes, _tempo, onNote) => {
+        onNote(notes[0]!);
+      });
+    const user = userEvent.setup();
+    render(<App />);
+    const third = screen.getByRole('button', {
+      name: 'Play E2, scale degree 3',
+    });
+    expect(third).not.toHaveClass('circle-playing');
+    await user.click(
+      screen.getByRole('button', {
+        name: 'E1 string, open, E1, scale note. Play note',
+      }),
+    );
+    expect(third).toHaveClass('circle-playing');
+    await user.click(
+      screen.getByRole('button', {
+        name: 'D2 string, fret 10, C3, root. Play note',
+      }),
+    );
+    expect(third).not.toHaveClass('circle-playing');
+    expect(screen.getByRole('button', { name: 'Play C2, root' })).toHaveClass(
+      'circle-playing',
+    );
+    const outside = screen.getByRole('button', {
+      name: 'Play C#2, outside scale',
+    });
+    await user.click(outside);
+    expect(play.mock.calls.at(-1)!.slice(0, 2)).toEqual([[37], 90]);
+    expect(outside).toHaveClass('circle-playing');
+    expect(
+      screen.getByRole('button', {
+        name: 'A1 string, fret 4, C#2, outside scale. Play note',
+      }),
+    ).toHaveClass('fret-playing');
+  });
+
   it('plays both directions at the selected tempo and stops on edits, Stop, hidden page and unmount', async () => {
     const play = vi
       .spyOn(NotePlayer.prototype, 'play')
