@@ -9,6 +9,8 @@
   --root-sub: #d0dfad;
   --shape-fill: rgb(101 119 72 / 11%);
   --playing: #b85629;
+  /* Dashed rings mark what the microphone hears. */
+  --heard: #0b7a68;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #203d32;
   background: #f6f4ec;
@@ -472,6 +474,19 @@ select {
     0 0 0 3px #fffef9,
     0 0 0 6px var(--playing);
 }
+/* A dashed ring for heard notes, outside the solid playing ring. */
+.circle-note button.circle-heard {
+  position: relative;
+}
+.circle-note button.circle-heard::after,
+.fret-heard::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border: 2px dashed var(--heard);
+  border-radius: inherit;
+  pointer-events: none;
+}
 
 /* Reading guide beside the circle. */
 .guide-title {
@@ -569,6 +584,18 @@ select {
 .swatch-playing {
   background: #fffef9;
   box-shadow: 0 0 0 2px var(--playing);
+}
+.swatch-heard,
+.legend-heard {
+  border: 2px dashed var(--heard);
+  background: transparent;
+}
+.legend-heard {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: -3px;
 }
 .scale-guide .explorer-hint {
   margin-top: 18px;
@@ -678,6 +705,176 @@ button:disabled {
 .playback-status {
   align-self: center;
   font-size: 13px;
+}
+/* Live microphone feedback. */
+.listen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 28px;
+  align-items: center;
+  padding: 28px 32px;
+  border-top: 1px solid #e4e7da;
+}
+.listen-intro h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.listen-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid #203d32;
+  border-radius: 999px;
+  background: #203d32;
+  color: #fffef9;
+  font-weight: 600;
+}
+.listen-toggle svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.listen:not([data-status='idle']) .listen-toggle {
+  border-color: var(--heard);
+  background: #fffef9;
+  color: #0a5c4f;
+  box-shadow: 0 0 0 4px rgb(11 122 104 / 14%);
+}
+.listen:not([data-status='idle']) .listen-toggle svg {
+  fill: currentColor;
+  stroke: none;
+}
+.listen-toggle:hover {
+  box-shadow: 0 0 0 4px rgb(32 61 50 / 14%);
+}
+.live-readout {
+  grid-column: 1 / -1;
+  min-height: 72px;
+  padding: 16px 20px;
+  border: 1px solid #e4e7da;
+  border-radius: 12px;
+  background: #f8f7f0;
+}
+.live-heard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  min-height: 40px;
+}
+.live-message {
+  color: #5d6954;
+  font-size: 14px;
+}
+.live-note-name {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 40px;
+  line-height: 1;
+}
+.live-membership {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.live-membership i {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #a5af9c;
+  border-radius: 50%;
+  background: #fffef9;
+  color: #5f6b58;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+.live-membership[data-membership='root'] i {
+  border: 2px solid var(--root-bg);
+  border-radius: 6px;
+  background: var(--root-bg);
+  color: var(--root-ink);
+}
+.live-membership[data-membership='scale'] i {
+  border-color: var(--scale-edge);
+  background: var(--scale-fill);
+  color: var(--scale-ink);
+}
+.live-tuning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.tuning-meter {
+  position: relative;
+  flex: none;
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e6d9;
+}
+.tuning-meter::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: #83917a;
+}
+.tuning-meter span {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fffef9;
+  border-radius: 50%;
+  background: var(--heard);
+  transform: translate(-50%, -50%);
+}
+.live-tuning:not([data-direction='in tune']) .tuning-meter span {
+  background: var(--playing);
+}
+.live-positions {
+  margin-top: 8px;
+  color: #5d6954;
+  font-size: 12px;
+}
+.level-meter {
+  display: block;
+  height: 3px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #e4e7da;
+}
+.level-meter span {
+  display: block;
+  height: 100%;
+  background: var(--heard);
+  transition: width 80ms linear;
+}
+.listen-warning {
+  grid-column: 1 / -1;
+  color: #7a4a12;
+  font-size: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .level-meter span {
+    transition: none;
+  }
 }
 .audio-error {
   grid-column: 1 / -1;
@@ -922,8 +1119,60 @@ button:disabled {
     0 0 0 3px #f6f4ec,
     0 0 0 6px var(--playing);
 }
+/* Zen: one quiet row between the circle and the fretboard. */
+[data-view='zen'] .listen {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  margin-top: clamp(10px, 2vh, 24px);
+  padding: 0;
+  border: 0;
+}
+[data-view='zen'] .listen-toggle {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-color: #d3d9ca;
+  background: transparent;
+  color: #52624f;
+  font-size: 14px;
+  font-weight: 500;
+}
+[data-view='zen'] .live-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 16px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+[data-view='zen'] .live-heard {
+  gap: 4px 12px;
+  min-height: 0;
+}
+[data-view='zen'] .live-note-name {
+  font-size: 26px;
+}
+[data-view='zen'] .live-membership {
+  font-size: 13px;
+  font-weight: 500;
+}
+[data-view='zen'] .live-tuning {
+  margin-top: 0;
+  color: #52624f;
+}
+[data-view='zen'] .tuning-meter {
+  width: 64px;
+}
+[data-view='zen'] .listen .audio-error {
+  flex-basis: 100%;
+  margin-top: 0;
+}
 [data-view='zen'] .fretboard-section {
-  margin-top: clamp(16px, 4vh, 44px);
+  margin-top: clamp(12px, 3vh, 36px);
   padding: 0;
   border: 0;
 }
@@ -999,8 +1248,15 @@ button:disabled {
     padding: 22px 18px;
   }
   .playback,
+  .listen,
   .fretboard-section {
     padding: 24px 18px;
+  }
+  .listen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .listen-toggle {
+    justify-self: start;
   }
   .playback {
     grid-template-columns: minmax(0, 1fr);

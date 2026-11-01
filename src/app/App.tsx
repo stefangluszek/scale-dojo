@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { STANDARD_BASS } from '../domain/instruments/fretted';
+import { positionsOfNote, STANDARD_BASS } from '../domain/instruments/fretted';
 import { scalePlaybackNotes } from '../domain/music/playback';
 import {
   scaleQuality,
   type PitchClass,
   type ScaleId,
 } from '../domain/music/scales';
-import { BassFretboard } from '../features/instruments/BassFretboard';
+import {
+  BassFretboard,
+  HIGHEST_FRET_SHOWN,
+} from '../features/instruments/BassFretboard';
+import { ListenPanel } from '../features/practice/ListenPanel';
+import { useLiveNote } from '../features/practice/useLiveNote';
 import { ScaleExplorer } from '../features/scales/ScaleExplorer';
 import { ScalePlayback } from '../features/scales/ScalePlayback';
 import { useNotePlayback } from '../features/scales/useNotePlayback';
@@ -23,6 +28,11 @@ export function App() {
   const [scaleId, setScaleId] = useState<ScaleId>('major-pentatonic');
   const [tempo, setTempo] = useState(90);
   const playback = useNotePlayback();
+  const listening = useLiveNote();
+  const heardNote =
+    listening.status === 'listening' && listening.reading.kind === 'note'
+      ? listening.reading.midi
+      : null;
   const [view, setView] = useState<ViewMode>('zen');
   const zen = view === 'zen';
   const notes = scalePlaybackNotes(root, scaleId, STANDARD_BASS.tuning[0]);
@@ -103,6 +113,7 @@ export function App() {
               scaleId={scaleId}
               playbackNotes={notes}
               activeNote={playback.activeNote}
+              heardNote={heardNote}
               onRootChange={(value) => {
                 playback.stop();
                 setRoot(value);
@@ -130,11 +141,27 @@ export function App() {
                 onStop={playback.stop}
               />
             )}
+            <ListenPanel
+              minimal={zen}
+              root={root}
+              scaleId={scaleId}
+              listening={listening}
+              fretboardMatches={
+                heardNote === null
+                  ? 0
+                  : positionsOfNote(
+                      STANDARD_BASS,
+                      heardNote,
+                      HIGHEST_FRET_SHOWN,
+                    ).length
+              }
+            />
             <BassFretboard
               minimal={zen}
               root={root}
               scaleId={scaleId}
               activeNote={playback.activeNote}
+              heardNote={heardNote}
               onPlayNote={playNote}
             />
             {/* Playback controls are hidden in zen; notes can still fail. */}
@@ -150,9 +177,9 @@ export function App() {
               <p className="eyebrow">The practice ahead</p>
               <h2 id="next-heading">From knowing to hearing.</h2>
               <p>
-                Live microphone feedback and a record of the notes you play are
-                planned for later stages. For now, explore the neck and hear
-                each scale.
+                Explore the neck, hear each scale, then play it back on your
+                bass and see which notes belong. A record of the notes you play
+                is planned for a later stage.
               </p>
               <ol className="practice-steps">
                 <li>
@@ -166,7 +193,7 @@ export function App() {
                   <span>02</span>
                   <div>
                     <h3>Play & listen</h3>
-                    <p>Planned: hear your bass and see which notes belong.</p>
+                    <p>Ready now: play your bass and see which notes belong.</p>
                   </div>
                 </li>
                 <li>

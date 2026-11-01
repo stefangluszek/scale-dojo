@@ -16,6 +16,7 @@ interface ScaleExplorerProps {
   scaleId: ScaleId;
   playbackNotes: readonly number[];
   activeNote: number | null;
+  heardNote: number | null;
   onRootChange: (root: PitchClass) => void;
   onScaleChange: (scaleId: ScaleId) => void;
   onPlayNote: (note: number) => void;
@@ -27,6 +28,7 @@ export function ScaleExplorer({
   scaleId,
   playbackNotes,
   activeNote,
+  heardNote,
   onRootChange,
   onScaleChange,
   onPlayNote,
@@ -89,6 +91,7 @@ export function ScaleExplorer({
           scaleId={scaleId}
           lowRoot={playbackNotes[0]!}
           activeNote={activeNote}
+          heardNote={heardNote}
           onPlayNote={onPlayNote}
           onRootChange={onRootChange}
           onScaleChange={onScaleChange}
@@ -149,6 +152,10 @@ export function ScaleExplorer({
               <span>
                 <i className="swatch swatch-playing" aria-hidden="true" />
                 Playing now
+              </span>
+              <span>
+                <i className="swatch swatch-heard" aria-hidden="true" />
+                Heard now
               </span>
             </p>
             <p className="explorer-hint">

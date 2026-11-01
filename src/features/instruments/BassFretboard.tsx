@@ -8,7 +8,9 @@ import {
   type ScaleId,
 } from '../../domain/music/scales';
 
-const FRETS = Array.from({ length: 13 }, (_, fret) => fret);
+/** The fretboard shows open strings through this fret. */
+export const HIGHEST_FRET_SHOWN = 12;
+const FRETS = Array.from({ length: HIGHEST_FRET_SHOWN + 1 }, (_, fret) => fret);
 const STRINGS = [...STANDARD_BASS.tuning.keys()].reverse();
 
 interface BassFretboardProps {
@@ -17,6 +19,8 @@ interface BassFretboardProps {
   root: PitchClass;
   scaleId: ScaleId;
   activeNote: number | null;
+  /** Pitch the microphone hears; every matching position is ringed. */
+  heardNote: number | null;
   onPlayNote: (midiNote: number) => void;
 }
 
@@ -25,6 +29,7 @@ export function BassFretboard({
   root,
   scaleId,
   activeNote,
+  heardNote,
   onPlayNote,
 }: BassFretboardProps) {
   return (
@@ -58,6 +63,10 @@ export function BassFretboard({
           </span>
           <span>Outline: outside scale</span>
           <span>♪ Playing pitch</span>
+          <span>
+            <i className="legend-heard" aria-hidden="true" /> Heard pitch, at
+            every matching position
+          </span>
         </p>
       )}
       <div
@@ -102,6 +111,7 @@ export function BassFretboard({
                     const isRoot = pitch === root;
                     const inScale = isNoteInScale(midiNote, root, scaleId);
                     const playing = midiNote === activeNote;
+                    const heard = midiNote === heardNote;
                     const membership = isRoot
                       ? 'root'
                       : inScale
@@ -111,8 +121,8 @@ export function BassFretboard({
                       <td key={fret}>
                         <button
                           type="button"
-                          className={`fret-note ${isRoot ? 'fret-root' : inScale ? 'fret-in-scale' : ''} ${playing ? 'fret-playing' : ''}`}
-                          aria-label={`${stringName} string, ${fret === 0 ? 'open' : `fret ${fret}`}, ${midiNoteName(midiNote)}, ${membership}. Play note`}
+                          className={`fret-note ${isRoot ? 'fret-root' : inScale ? 'fret-in-scale' : ''} ${playing ? 'fret-playing' : ''} ${heard ? 'fret-heard' : ''}`}
+                          aria-label={`${stringName} string, ${fret === 0 ? 'open' : `fret ${fret}`}, ${midiNoteName(midiNote)}, ${membership}${heard ? ', matches heard pitch' : ''}. Play note`}
                           onClick={() => onPlayNote(midiNote)}
                         >
                           <span>{noteName(pitch)}</span>

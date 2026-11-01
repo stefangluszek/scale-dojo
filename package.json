@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:browser": "npm run build && playwright test",
+    "bench:pitch": "vitest run --config vitest.benchmark.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run format:check && npm run test:coverage && npm run build"

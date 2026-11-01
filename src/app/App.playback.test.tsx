@@ -2,7 +2,7 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotePlayer } from '../platform/audio/NotePlayer';
-import { renderFullPage } from '../test/renderApp';
+import { playbackStatus, renderFullPage } from '../test/renderApp';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -168,7 +168,7 @@ describe('bass explorer and playback integration', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Tempo' }), {
       target: { value: '120' },
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
     await user.click(screen.getByRole('button', { name: /Play descending/ }));
     expect(play.mock.calls[1]!.slice(0, 2)).toEqual([
       [48, 45, 43, 40, 38, 36],
@@ -183,17 +183,17 @@ describe('bass explorer and playback integration', () => {
       screen.getByLabelText('Scale', { exact: true }),
       'major',
     );
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
     await user.click(screen.getByRole('button', { name: /Play ascending/ }));
     await user.click(screen.getByRole('button', { name: 'Stop playback' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
     await user.click(screen.getByRole('button', { name: /Play descending/ }));
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
     fireEvent(document, new Event('visibilitychange'));
-    expect(screen.getByRole('status')).toHaveTextContent('Playing');
+    expect(playbackStatus()).toHaveTextContent('Playing');
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     fireEvent(document, new Event('visibilitychange'));
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
     expect(stop).toHaveBeenCalled();
     unmount();
     expect(dispose).toHaveBeenCalledOnce();
@@ -208,7 +208,7 @@ describe('bass explorer and playback integration', () => {
     const user = userEvent.setup();
     renderFullPage();
     await user.click(screen.getByRole('button', { name: /Play ascending/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
     play.mockRejectedValueOnce(new Error('Audio is unavailable'));
     await user.click(screen.getByRole('button', { name: /Play ascending/ }));
     expect(screen.getByRole('alert')).toHaveTextContent('Audio is unavailable');
@@ -240,6 +240,6 @@ describe('bass explorer and playback integration', () => {
       reject(new Error('Old failure'));
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
+    expect(playbackStatus()).toHaveTextContent('Ready to play');
   });
 });
