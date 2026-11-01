@@ -12,6 +12,8 @@ const FRETS = Array.from({ length: 13 }, (_, fret) => fret);
 const STRINGS = [...STANDARD_BASS.tuning.keys()].reverse();
 
 interface BassFretboardProps {
+  /** Show only the fretboard, without its heading, help text or legend. */
+  minimal?: boolean;
   root: PitchClass;
   scaleId: ScaleId;
   activeNote: number | null;
@@ -19,6 +21,7 @@ interface BassFretboardProps {
 }
 
 export function BassFretboard({
+  minimal = false,
   root,
   scaleId,
   activeNote,
@@ -26,28 +29,37 @@ export function BassFretboard({
 }: BassFretboardProps) {
   return (
     <section className="fretboard-section" aria-labelledby="fretboard-heading">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">02 / Find it on the neck</p>
-          <h2 id="fretboard-heading">The bass fretboard.</h2>
+      {minimal ? (
+        <h2 id="fretboard-heading" className="sr-only">
+          The bass fretboard.
+        </h2>
+      ) : (
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">02 / Find it on the neck</p>
+            <h2 id="fretboard-heading">The bass fretboard.</h2>
+          </div>
+          <span className="instrument-tag">Open strings – fret 12</span>
         </div>
-        <span className="instrument-tag">Open strings – fret 12</span>
-      </div>
-      <p id="fretboard-help" className="explorer-hint">
+      )}
+      {/* Kept for screen readers in minimal mode: it describes the region. */}
+      <p id="fretboard-help" className={minimal ? 'sr-only' : 'explorer-hint'}>
         Standard tuning E1–A1–D2–G2. Highest string at the top, lowest at the
         bottom. Tap any note to hear it. Scroll sideways to explore all 12
         frets.
       </p>
-      <p className="fretboard-legend">
-        <span>
-          <b>R</b> Root
-        </span>
-        <span>
-          <b>●</b> Scale note
-        </span>
-        <span>Outline: outside scale</span>
-        <span>♪ Playing pitch</span>
-      </p>
+      {!minimal && (
+        <p className="fretboard-legend">
+          <span>
+            <b>R</b> Root
+          </span>
+          <span>
+            <b>●</b> Scale note
+          </span>
+          <span>Outline: outside scale</span>
+          <span>♪ Playing pitch</span>
+        </p>
+      )}
       <div
         className="fretboard-scroll"
         role="region"
@@ -62,7 +74,9 @@ export function BassFretboard({
           </caption>
           <thead>
             <tr>
-              <th scope="col">String</th>
+              <th scope="col">
+                <span className={minimal ? 'sr-only' : undefined}>String</span>
+              </th>
               {FRETS.map((fret) => (
                 <th key={fret} scope="col">
                   {fret === 0 ? 'Open' : fret}

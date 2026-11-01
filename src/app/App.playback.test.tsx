@@ -1,14 +1,14 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotePlayer } from '../platform/audio/NotePlayer';
-import { App } from './App';
+import { renderFullPage } from '../test/renderApp';
 
 afterEach(() => vi.restoreAllMocks());
 
 describe('bass explorer and playback integration', () => {
   it('renders labeled strings, open notes, fret 12, repeated pitches and non-color root cues', () => {
-    render(<App />);
+    renderFullPage();
     const table = screen.getByRole('table');
     expect(within(table).getAllByRole('button')).toHaveLength(52);
     expect(
@@ -50,7 +50,7 @@ describe('bass explorer and playback integration', () => {
 
   it('keeps roots, membership, and playback synchronized with both selectors', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.selectOptions(screen.getByLabelText('Root note'), '9');
     await user.selectOptions(
       screen.getByLabelText('Scale', { exact: true }),
@@ -81,7 +81,7 @@ describe('bass explorer and playback integration', () => {
         onNote(notes[0]!);
       });
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     const chip = screen.getByRole('button', { name: 'Play C2, root' });
     chip.focus();
     await user.keyboard('{Enter}');
@@ -116,7 +116,7 @@ describe('bass explorer and playback integration', () => {
         onNote(notes[0]!);
       });
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     const third = screen.getByRole('button', {
       name: 'Play E2, scale degree 3',
     });
@@ -156,7 +156,7 @@ describe('bass explorer and playback integration', () => {
     const stop = vi.spyOn(NotePlayer.prototype, 'stop');
     const dispose = vi.spyOn(NotePlayer.prototype, 'dispose');
     const user = userEvent.setup();
-    const { unmount } = render(<App />);
+    const { unmount } = renderFullPage();
     expect(
       screen.getByRole('button', { name: 'Stop playback' }),
     ).toBeDisabled();
@@ -206,7 +206,7 @@ describe('bass explorer and playback integration', () => {
         complete();
       });
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.click(screen.getByRole('button', { name: /Play ascending/ }));
     expect(screen.getByRole('status')).toHaveTextContent('Ready to play');
     play.mockRejectedValueOnce(new Error('Audio is unavailable'));
@@ -233,7 +233,7 @@ describe('bass explorer and playback integration', () => {
       }),
     );
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.click(screen.getByRole('button', { name: /Play ascending/ }));
     await user.click(screen.getByRole('button', { name: 'Stop playback' }));
     await act(async () => {
