@@ -95,7 +95,7 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 MPM was chosen: it is the only one without octave errors on the octave trap and in heavy noise, and it costs about the same (4.2 ms per 4096-sample window for MPM, 3.8 ms for YIN, in Node on the development container). 2048-sample windows were just as accurate on these fixtures but hold under two periods of E1, so the app uses the power of two of at least 75 ms: 4096 samples at 44.1 or 48 kHz. Both detectors are implemented in this repository; no dependency was added.
 
-**Pipeline.** `MicrophoneInput` reads the newest window from an `AnalyserNode` every 40 ms. Windows quieter than −48 dBFS RMS are silence and skip detection. `NoteStabilizer` trusts a window at clarity ≥ 0.8 within 38–420 Hz, starts a note once it persists for 40 ms across at least two windows, keeps a held note through ±70 cents and through dropouts shorter than 120 ms, and shows the median tuning of the last five windows. Silence and untrusted sound are separate readings, never wrong notes.
+**Pipeline.** `MicrophoneInput` reads the newest window from an `AnalyserNode` every 40 ms. Windows below the silence gate are silence and skip detection. The gate sits 10 dB above a running estimate of the room's noise floor, which starts at an assumed −60 dBFS, falls at once to any quieter window, rises at most 3 dB per second while no note is heard, ignores digital silence, and never puts the gate below −70 dBFS. `NoteStabilizer` trusts a window at clarity ≥ 0.8 within 38–420 Hz, starts a note once it persists for 40 ms across at least two windows, keeps a held note through ±70 cents and through dropouts shorter than 120 ms, and shows the median tuning of the last five windows. Silence and untrusted sound are separate readings, never wrong notes.
 
 **Targets and measured results (deterministic recordings).**
 
@@ -115,11 +115,13 @@ MPM was chosen: it is the only one without octave errors on the octave trap and 
 
 - Only Chromium was tested, with a fake microphone. Firefox, Safari, physical phones, real microphones, and rooms are untested. Phone and laptop microphones pick up little at 41 Hz; the weak-fundamental fixture models this, but real devices may be worse.
 - Monophonic: chords or strings left ringing give an unclear or dominant-note reading.
-- The −48 dBFS silence gate is fixed. A very quiet acoustic bass may read as silent and a noisy room as "no clear note"; there is no calibration yet.
+- The silence gate adapts to the room but has no manual control. Notes need to be about 10 dB above the room's background, so quiet notes in a loud room stay below it, and a noisy room reads as "no clear note" for the few seconds the gate takes to rise. Steady pitched hum above the gate, such as mains hum on a noisy audio interface, can read as a note.
 - The range stops at 38 Hz, so five-string B0 (30.9 Hz) and drop-D's D1 (36.7 Hz) are not supported. Notes above 420 Hz read as unclear.
 - Browsers may not honor the request to turn off echo cancellation, noise suppression, and automatic gain control. The full page names any that stay on.
 - Analysis runs on the main thread at 25 windows per second. Phone CPU use and latency have not been measured; `AudioWorklet` remains an option if they are inadequate.
 - Hiding the page stops listening. Synthesized playback is audible to the microphone while listening.
+
+**Follow-up (2026-11-01): first real-bass check.** The project owner tried the deployed app with an electric bass. Notes were detected, but only when the string was plucked very hard. The cause was the original fixed −48 dBFS RMS silence gate: with automatic gain control off, normal plucks arrive quieter than that. The gate now adapts to the room as described under **Pipeline**, so in a quiet room notes down to about −65 dBFS count, and the full page's level meter marks the gate. Unit tests cover quiet and noisy rooms, 20 seconds of continuous playing, digital silence, and a soft E1 at −58 dBFS over −75 dBFS room noise through the real detector. The fake-microphone browser test now plays its F1 at −58 dBFS over room noise; it fails with the old gate and passes with the new one. This change has not been re-checked with the real bass yet, and the rest of the manual check above is still to do.
 
 **Next session:** stage 3, capturing and reviewing practice sequences. Build on `NoteStabilizer` readings and `useLiveNote`'s lifecycle; do the real-instrument check first if possible, since segmentation depends on how real notes start and decay.
 

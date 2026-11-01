@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test as base, type Page } from '@playwright/test';
+import { rootMeanSquare } from '../../src/domain/pitch/detector';
 import {
   concat,
   encodeWav,
@@ -9,17 +10,22 @@ import {
   midiFrequency,
   silence,
   tone,
+  whiteNoise,
 } from '../../src/test/audioFixtures';
 
 const SAMPLE_RATE = 48000;
 
+/** RMS level for a level in dBFS. */
+const dbfs = (decibels: number) => 10 ** (decibels / 20);
+
 /**
- * What Chromium's fake microphone plays, on a loop: low E1 (in C major
- * pentatonic), then F1 (outside it), with silence around each.
+ * What Chromium's fake microphone plays, on a loop, over quiet room noise
+ * (about −75 dBFS): a firm low E1 (in C major pentatonic), then a soft F1
+ * (outside it) at about −58 dBFS, below the old fixed −48 dBFS gate.
  */
 function fakeBassRecording() {
-  const note = (midi: number, seed: number) =>
-    fade(
+  const note = (midi: number, seed: number, level: number) => {
+    const samples = fade(
       tone({
         frequency: midiFrequency(midi),
         sampleRate: SAMPLE_RATE,
@@ -31,8 +37,20 @@ function fakeBassRecording() {
       }),
       SAMPLE_RATE,
     );
+    const scale = level / rootMeanSquare(samples);
+    return samples.map((sample) => sample * scale);
+  };
   const gap = silence(Math.round(0.6 * SAMPLE_RATE));
-  return concat(gap, note(28, 1), gap, note(29, 2), gap);
+  const music = concat(
+    gap,
+    note(28, 1, dbfs(-20)),
+    gap,
+    note(29, 2, dbfs(-58)),
+    gap,
+  );
+  // Uniform noise RMS is peak/√3.
+  const room = whiteNoise(music.length, dbfs(-75) * Math.sqrt(3), 5);
+  return music.map((sample, index) => sample + room[index]!);
 }
 
 declare global {
@@ -160,7 +178,7 @@ test('hears a fake bass through the microphone and rings matching positions', as
     fullPage: true,
   });
 
-  // The recording moves on to F1, outside the scale, after a silence.
+  // The recording moves on to a soft F1, outside the scale, after a silence.
   await expect(readout(page)).toContainText('Hearing F1', { timeout: 10_000 });
   await expect(readout(page)).toContainText('Outside the scale');
   await expect(

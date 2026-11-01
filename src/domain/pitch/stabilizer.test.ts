@@ -187,6 +187,99 @@ describe('note stabilizer with controlled timestamps', () => {
   });
 });
 
+/** dBFS to RMS level. */
+function dbfs(decibels: number) {
+  return 10 ** (decibels / 20);
+}
+
+/** Room sound with no clear pitch at a given level. */
+function room(time: number, decibels: number): PitchFrame {
+  return {
+    time,
+    level: dbfs(decibels),
+    estimate: { frequency: 97, clarity: 0.3 },
+  };
+}
+
+function soft(time: number, pitch: number, decibels: number): PitchFrame {
+  return { ...heard(time, pitch), level: dbfs(decibels) };
+}
+
+describe('adaptive silence gate', () => {
+  it('starts 10 dB above an assumed −60 dBFS room and ignores digital silence', () => {
+    const stabilizer = new NoteStabilizer();
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-50), 6);
+    stabilizer.push({ time: 0, level: 0, estimate: null });
+    stabilizer.push({ time: 40, level: 1e-6, estimate: null });
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-50), 6);
+  });
+
+  it('hears soft notes in a quiet room', () => {
+    const stabilizer = new NoteStabilizer();
+    // A quiet room sets the floor at −75 dBFS, so the gate drops to −65.
+    stabilizer.push(room(0, -75));
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-65), 6);
+    // −58 dBFS: well below the old fixed −48 dBFS gate.
+    expect(stabilizer.push(soft(40, 28, -58)).kind).toBe('unclear');
+    expect(stabilizer.push(soft(80, 28, -58))).toMatchObject({
+      kind: 'note',
+      midi: 28,
+    });
+    expect(stabilizer.push(room(400, -74))).toEqual({ kind: 'silent' });
+  });
+
+  it('never drops the gate below −70 dBFS', () => {
+    const stabilizer = new NoteStabilizer();
+    stabilizer.push(room(0, -88));
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-70), 6);
+    expect(stabilizer.push(soft(40, 33, -72)).kind).toBe('silent');
+  });
+
+  it('raises the gate in a noisy room until steady noise reads as silence', () => {
+    const stabilizer = new NoteStabilizer();
+    const readings: string[] = [];
+    // Ten seconds of −40 dBFS background noise with no clear pitch.
+    for (let time = 0; time <= 10_000; time += 40) {
+      readings.push(stabilizer.push(room(time, -40)).kind);
+    }
+    expect(readings[0]).toBe('unclear');
+    expect(readings.at(-1)).toBe('silent');
+    // The floor rises 3 dB per second from −60, so the gate passes the
+    // noise after a little over 3 seconds.
+    const cleared = readings.indexOf('silent') * 40;
+    expect(cleared).toBeGreaterThan(3000);
+    expect(cleared).toBeLessThan(4000);
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-30), 6);
+    // Notes clearly above the noise still count.
+    stabilizer.push(soft(10_040, 40, -20));
+    expect(stabilizer.push(soft(10_080, 40, -20)).kind).toBe('note');
+    // A quieter room lowers the floor at once.
+    stabilizer.push(room(10_500, -70));
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-60), 6);
+  });
+
+  it('never lets long notes or busy playing raise the gate', () => {
+    const stabilizer = new NoteStabilizer();
+    stabilizer.push(room(0, -75));
+    let reading: LiveReading = { kind: 'silent' };
+    // Twenty seconds of soft notes with no rests.
+    for (let time = 40; time <= 20_000; time += 40) {
+      reading = stabilizer.push(
+        soft(time, 28 + (Math.floor(time / 500) % 5), -55),
+      );
+    }
+    expect(reading.kind).toBe('note');
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-65), 6);
+  });
+
+  it('measures the room again after reset', () => {
+    const stabilizer = new NoteStabilizer();
+    stabilizer.push(room(0, -80));
+    stabilizer.reset();
+    expect(stabilizer.silenceLevel).toBeCloseTo(dbfs(-50), 6);
+  });
+});
+
 /**
  * Runs the detector and stabilizer like the live app: a window every
  * ANALYSIS_INTERVAL_MS, each ending at that moment. Stops early once
@@ -284,6 +377,30 @@ describe(
         }
       },
     );
+
+    it('hears a softly plucked note over quiet room noise', () => {
+      const sampleRate = 48000;
+      const length = (ms: number) => Math.round((ms * sampleRate) / 1000);
+      // Room noise around −75 dBFS RMS (uniform noise RMS is peak/√3).
+      const roomNoise = whiteNoise(length(1200), dbfs(-75) * Math.sqrt(3), 4);
+      const pluck = note(28, 700, sampleRate, 'phone', { decay: 1 });
+      const scale = dbfs(-58) / rootMeanSquare(pluck.subarray(0, length(100)));
+      const signal = roomNoise.map((sample, index) => {
+        const at = index - length(500);
+        return sample + (at >= 0 && at < pluck.length ? pluck[at]! * scale : 0);
+      });
+      // Quieter than the old fixed −48 dBFS gate.
+      expect(
+        rootMeanSquare(signal.subarray(length(500), length(600))),
+      ).toBeLessThan(0.004);
+      const readings = listen(signal, sampleRate);
+      expect(
+        readings
+          .filter(({ time }) => time < 500)
+          .every(({ reading }) => reading.kind === 'silent'),
+      ).toBe(true);
+      expect(firstNoteTime(readings, 28, 500)! - 500).toBeLessThanOrEqual(200);
+    });
 
     it('turns a sustained, decaying note into one steady reading', () => {
       const sampleRate = 48000;

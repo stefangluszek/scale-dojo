@@ -78,7 +78,8 @@ export function ListenPanel({
   listening,
   fretboardMatches,
 }: ListenPanelProps) {
-  const { status, reading, level, problem, paused, processing } = listening;
+  const { status, reading, level, gate, problem, paused, processing } =
+    listening;
   const running = status !== 'idle';
   const note =
     status === 'listening' && reading.kind === 'note' ? reading : null;
@@ -173,8 +174,13 @@ export function ListenPanel({
           </p>
         )}
         {!minimal && status === 'listening' && (
-          <span className="level-meter" aria-hidden="true">
+          <span
+            className="level-meter"
+            aria-hidden="true"
+            title="Input level. Sound left of the mark counts as silence."
+          >
             <span style={{ width: `${level * 100}%` }} />
+            <i style={{ left: `${gate * 100}%` }} />
           </span>
         )}
       </div>

@@ -853,16 +853,26 @@ button:disabled {
   font-size: 12px;
 }
 .level-meter {
+  position: relative;
   display: block;
-  height: 3px;
+  height: 4px;
   margin-top: 14px;
-  overflow: hidden;
   border-radius: 2px;
   background: #e4e7da;
+}
+/* The silence gate: input must reach past this mark to count as sound. */
+.level-meter i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: #83917a;
 }
 .level-meter span {
   display: block;
   height: 100%;
+  border-radius: inherit;
   background: var(--heard);
   transition: width 80ms linear;
 }
