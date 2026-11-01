@@ -34,8 +34,23 @@ export type LiveReading =
     };
 
 export interface StabilizerOptions {
-  /** RMS level below which a window counts as silence (0.004 ≈ −48 dBFS). */
-  silenceLevel: number;
+  /**
+   * The silence gate never drops below this RMS level, however quiet the
+   * room (−70 dBFS).
+   */
+  minSilenceLevel: number;
+  /**
+   * Assumed room noise before any is measured (0.001 ≈ −60 dBFS). A quieter
+   * window replaces it straight away.
+   */
+  initialNoiseFloor: number;
+  /** How far above the room's noise floor sound has to be, in dB. */
+  gateAboveNoiseDb: number;
+  /**
+   * How fast the noise floor estimate may rise while no note is heard, in
+   * dB per second. It falls at once when a window is quieter.
+   */
+  noiseFloorRiseDbPerSecond: number;
   /** Clarity a window needs before its pitch is trusted. */
   minClarity: number;
   /** How long a new note must persist, across two or more windows. */
@@ -52,7 +67,10 @@ export interface StabilizerOptions {
 }
 
 export const DEFAULT_STABILIZER_OPTIONS: StabilizerOptions = {
-  silenceLevel: 0.004,
+  minSilenceLevel: 10 ** (-70 / 20),
+  initialNoiseFloor: 0.001,
+  gateAboveNoiseDb: 10,
+  noiseFloorRiseDbPerSecond: 3,
   minClarity: 0.8,
   confirmMs: 40,
   releaseMs: 120,
@@ -62,6 +80,16 @@ export const DEFAULT_STABILIZER_OPTIONS: StabilizerOptions = {
 
 /** Recent windows averaged (by median) for the displayed tuning. */
 const TUNING_WINDOWS = 5;
+
+/**
+ * Windows quieter than this (−90 dBFS) are digital silence, such as a muted
+ * input or a stream that hasn't started, not the sound of a room.
+ */
+const DIGITAL_SILENCE_DB = -90;
+
+function decibels(level: number): number {
+  return 20 * Math.log10(Math.max(level, 1e-12));
+}
 
 interface HeldNote {
   midi: number;
@@ -86,31 +114,73 @@ function median(values: readonly number[]): number {
 /**
  * Turns per-window pitch estimates into a steady current note. A note
  * starts only after it persists for `confirmMs`, survives brief dropouts for
- * `releaseMs`, and resists flicker near semitone boundaries. Pure and
+ * `releaseMs`, and resists flicker near semitone boundaries.
+ *
+ * The silence gate follows the room: it sits `gateAboveNoiseDb` above a
+ * running estimate of the noise floor, so soft notes count in a quiet room
+ * and steady background noise reads as silence in a loud one. Pure and
  * deterministic: feed it frames with controlled timestamps to test it.
  */
 export class NoteStabilizer {
   private readonly options: StabilizerOptions;
   private held: HeldNote | null = null;
   private candidate: Candidate | null = null;
+  private noiseFloorDb: number;
+  private lastTime: number | null = null;
 
   constructor(options: Partial<StabilizerOptions> = {}) {
     this.options = { ...DEFAULT_STABILIZER_OPTIONS, ...options };
+    this.noiseFloorDb = decibels(this.options.initialNoiseFloor);
   }
 
-  push({ time, level, estimate }: PitchFrame): LiveReading {
-    const { silenceLevel, minClarity, confirmMs, range } = this.options;
-    if (level < silenceLevel) return this.drop(time, 'silent');
-    if (
-      !estimate ||
-      estimate.clarity < minClarity ||
-      estimate.frequency < range.minFrequency ||
-      estimate.frequency > range.maxFrequency
-    ) {
-      return this.drop(time, 'unclear');
-    }
+  /** RMS level a window needs right now to count as sound. */
+  get silenceLevel(): number {
+    const { minSilenceLevel, gateAboveNoiseDb } = this.options;
+    return Math.max(
+      minSilenceLevel,
+      10 ** ((this.noiseFloorDb + gateAboveNoiseDb) / 20),
+    );
+  }
 
-    const pitch = frequencyToMidi(estimate.frequency);
+  push(frame: PitchFrame): LiveReading {
+    const { time, level, estimate } = frame;
+    const { minClarity, range } = this.options;
+    // Judge the window against the gate before it updates the noise floor.
+    const silent = level < this.silenceLevel;
+    const trusted =
+      !silent &&
+      estimate !== null &&
+      estimate.clarity >= minClarity &&
+      estimate.frequency >= range.minFrequency &&
+      estimate.frequency <= range.maxFrequency;
+    this.trackNoiseFloor(time, level, trusted);
+    if (silent) return this.drop(time, 'silent');
+    if (!trusted) return this.drop(time, 'unclear');
+    return this.hear(time, estimate!.frequency);
+  }
+
+  private trackNoiseFloor(time: number, level: number, note: boolean) {
+    const elapsed =
+      this.lastTime === null ? 0 : Math.max(0, time - this.lastTime) / 1000;
+    this.lastTime = time;
+    const levelDb = decibels(level);
+    if (levelDb < DIGITAL_SILENCE_DB) return;
+    if (levelDb < this.noiseFloorDb) {
+      this.noiseFloorDb = levelDb;
+    } else if (!note) {
+      // Notes never raise the floor, so long notes and busy playing can't
+      // gate themselves out.
+      this.noiseFloorDb = Math.min(
+        levelDb,
+        this.noiseFloorDb + this.options.noiseFloorRiseDbPerSecond * elapsed,
+      );
+    }
+  }
+
+  private hear(time: number, frequency: number): LiveReading {
+    const { confirmMs } = this.options;
+
+    const pitch = frequencyToMidi(frequency);
     const held = this.held;
     const reach = 0.5 + this.options.hysteresisCents / 100;
     if (held && Math.abs(pitch - held.midi) <= reach) {
@@ -145,6 +215,8 @@ export class NoteStabilizer {
   reset(): void {
     this.held = null;
     this.candidate = null;
+    this.noiseFloorDb = decibels(this.options.initialNoiseFloor);
+    this.lastTime = null;
   }
 
   private drop(

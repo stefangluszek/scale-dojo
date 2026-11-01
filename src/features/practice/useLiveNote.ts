@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { detectPitch, rootMeanSquare } from '../../domain/pitch/detector';
 import {
-  DEFAULT_STABILIZER_OPTIONS,
   NoteStabilizer,
   type LiveReading,
 } from '../../domain/pitch/stabilizer';
@@ -22,8 +21,10 @@ export interface LiveListening {
   status: ListenStatus;
   /** Always silent while not listening. */
   reading: LiveReading;
-  /** Input level for a meter, from 0 (−60 dBFS or quieter) to 1 (0 dBFS). */
+  /** Input level for a meter, from 0 (−80 dBFS or quieter) to 1 (0 dBFS). */
   level: number;
+  /** The silence gate on the same scale: quieter input counts as silence. */
+  gate: number;
   problem: ListenProblem | null;
   /** Listening stopped because the page was hidden. */
   paused: boolean;
@@ -41,10 +42,13 @@ function sameReading(a: LiveReading, b: LiveReading): boolean {
   return a.midi === b.midi && a.cents === b.cents;
 }
 
-/** Decibels mapped onto 0–1 in 2% steps, so tiny changes don't re-render. */
+/**
+ * −80 to 0 dBFS mapped onto 0–1 in 2% steps, so tiny changes don't
+ * re-render.
+ */
 function meterLevel(rms: number): number {
   const decibels = 20 * Math.log10(Math.max(rms, 1e-6));
-  const level = Math.min(1, Math.max(0, (decibels + 60) / 60));
+  const level = Math.min(1, Math.max(0, (decibels + 80) / 80));
   return Math.round(level * 50) / 50;
 }
 
@@ -60,6 +64,7 @@ export function useLiveNote(): LiveListening {
   const [status, setStatus] = useState<ListenStatus>('idle');
   const [reading, setReading] = useState<LiveReading>(SILENT);
   const [level, setLevel] = useState(0);
+  const [gate, setGate] = useState(0);
   const [problem, setProblem] = useState<ListenProblem | null>(null);
   const [paused, setPaused] = useState(false);
   const [processing, setProcessing] = useState<readonly VoiceProcessing[]>([]);
@@ -79,14 +84,14 @@ export function useLiveNote(): LiveListening {
 
   const onFrame = useCallback(({ time, samples, sampleRate }: AudioFrame) => {
     const rms = rootMeanSquare(samples);
+    const notes = stabilizer.current!;
     // Skip the detector on silence; the stabilizer would discard it anyway.
     const estimate =
-      rms >= DEFAULT_STABILIZER_OPTIONS.silenceLevel
-        ? detectPitch(samples, sampleRate)
-        : null;
-    const next = stabilizer.current!.push({ time, level: rms, estimate });
+      rms >= notes.silenceLevel ? detectPitch(samples, sampleRate) : null;
+    const next = notes.push({ time, level: rms, estimate });
     setReading((current) => (sameReading(current, next) ? current : next));
     setLevel(meterLevel(rms));
+    setGate(meterLevel(notes.silenceLevel));
   }, []);
 
   useEffect(() => {
@@ -138,5 +143,15 @@ export function useLiveNote(): LiveListening {
       );
   };
 
-  return { status, reading, level, problem, paused, processing, start, stop };
+  return {
+    status,
+    reading,
+    level,
+    gate,
+    problem,
+    paused,
+    processing,
+    start,
+    stop,
+  };
 }

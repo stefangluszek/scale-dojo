@@ -8,6 +8,7 @@ import {
   type MicrophoneDetails,
   type MicrophoneProblem,
 } from '../platform/audio/MicrophoneInput';
+import { rootMeanSquare } from '../domain/pitch/detector';
 import {
   midiFrequency,
   silence,
@@ -73,6 +74,21 @@ function fakeMicrophone() {
         }),
         frames,
       ),
+    /** A softly plucked note over quiet room noise. */
+    hearSoftly: (midi: number, frames = 3) =>
+      feed(
+        tone({
+          frequency: midiFrequency(midi),
+          sampleRate: SAMPLE_RATE,
+          length: WINDOW,
+          amplitude: 0.004,
+          noise: 0.0003,
+          seed: midi,
+        }),
+        frames,
+      ),
+    /** Quiet room noise, about −75 dBFS. */
+    room: (frames = 3) => feed(whiteNoise(WINDOW, 0.0003), frames),
     quiet: (frames = 5) => feed(silence(WINDOW), frames),
     noise: (frames = 5) => feed(whiteNoise(WINDOW, 0.2), frames),
     lose: () => act(() => callbacks!.onEnded()),
@@ -340,6 +356,40 @@ describe('live microphone feedback', () => {
     microphone.stop.mockClear();
     unmount();
     expect(microphone.stop).toHaveBeenCalled();
+  });
+});
+
+describe('soft playing', () => {
+  it('hears a softly plucked note in a quiet room and marks the gate on the level meter', async () => {
+    const microphone = fakeMicrophone();
+    const user = userEvent.setup();
+    renderFullPage();
+    await user.click(screen.getByRole('button', { name: 'Start listening' }));
+    await microphone.grant();
+    microphone.room();
+    expect(heard()).toContain('Listening. Play a note.');
+    const mark = document.querySelector<HTMLElement>('.level-meter i')!;
+    // The gate sits 10 dB above the measured room: −65 dBFS on a −80 to 0 scale.
+    expect(parseFloat(mark.style.left)).toBeLessThan(25);
+
+    // Below the old fixed −48 dBFS gate, which would have read silence.
+    expect(
+      rootMeanSquare(
+        tone({
+          frequency: midiFrequency(33),
+          sampleRate: SAMPLE_RATE,
+          length: WINDOW,
+          amplitude: 0.004,
+          seed: 33,
+        }),
+      ),
+    ).toBeLessThan(0.004);
+    microphone.hearSoftly(33);
+    expect(heard()).toContain('Hearing A1');
+    const bar = document.querySelector<HTMLElement>('.level-meter span')!;
+    expect(parseFloat(bar.style.width)).toBeGreaterThan(
+      parseFloat(mark.style.left),
+    );
   });
 });
 

@@ -35,6 +35,8 @@ Play one note at a time: the detector is monophonic and covers the four-string b
 
 The detector uses the McLeod Pitch Method on 85–93 ms windows, 25 times a second. On synthetic bass recordings it finds the right note and octave for every semitone from E1 to G4, including with a weak fundamental, strong even harmonics, and background noise. A clean note appears 50–150 ms after it starts, slowest for low E1. Those results come from deterministic test signals and Chromium's fake microphone; **no real bass, microphone, or phone has been tested yet**. See [stage 2 in the implementation plan](docs/implementation-plan.md#stage-2--microphone-input-and-live-note-feedback) for the measurements, the known limitations, and a manual check to run with a real instrument.
 
+Soft playing counts: anything about 10 dB above the room's background noise is treated as sound. The threshold follows the room, adjusting over a few seconds, and the level meter on the full page marks it. If you still have to pluck hard, raise your computer's or phone's microphone input volume, or move the microphone closer to the bass or amplifier.
+
 Scale Dojo asks the browser to turn off echo cancellation, noise suppression, and automatic gain control, which can cut off or bend bass notes. If the browser keeps any of them on, the full page says so. Synthesized playback is audible to the microphone while listening, so it's heard like any other note.
 
 ## Run locally
