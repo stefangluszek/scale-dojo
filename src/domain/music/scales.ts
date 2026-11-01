@@ -16,26 +16,59 @@ export const NOTE_NAMES = [
   'B',
 ] as const;
 
+/** Major scales have a major third above the root; minor scales a minor third. */
+export type ScaleQuality = 'major' | 'minor';
+
 export const SCALE_DEFINITIONS = [
   {
     id: 'major-pentatonic',
     name: 'Major pentatonic',
+    quality: 'major',
     intervals: [0, 2, 4, 7, 9],
   },
   {
     id: 'minor-pentatonic',
     name: 'Minor pentatonic',
+    quality: 'minor',
     intervals: [0, 3, 5, 7, 10],
   },
-  { id: 'major', name: 'Major', intervals: [0, 2, 4, 5, 7, 9, 11] },
+  {
+    id: 'major',
+    name: 'Major',
+    quality: 'major',
+    intervals: [0, 2, 4, 5, 7, 9, 11],
+  },
   {
     id: 'natural-minor',
     name: 'Natural minor',
+    quality: 'minor',
     intervals: [0, 2, 3, 5, 7, 8, 10],
   },
-] as const;
+] as const satisfies readonly {
+  id: string;
+  name: string;
+  quality: ScaleQuality;
+  intervals: readonly number[];
+}[];
 
-export type ScaleId = (typeof SCALE_DEFINITIONS)[number]['id'];
+export type ScaleDefinition = (typeof SCALE_DEFINITIONS)[number];
+export type ScaleId = ScaleDefinition['id'];
+
+/** Degree names relative to the major scale on the same root. */
+const DEGREE_LABELS = [
+  '1',
+  '♭2',
+  '2',
+  '♭3',
+  '3',
+  '4',
+  '♭5',
+  '5',
+  '♭6',
+  '6',
+  '♭7',
+  '7',
+] as const;
 
 export function normalizePitchClass(semitones: number): PitchClass {
   if (!Number.isSafeInteger(semitones)) {
@@ -67,16 +100,40 @@ export function noteName(pitchClass: PitchClass): string {
   return NOTE_NAMES[pitchClass];
 }
 
+export function getScaleDefinition(scaleId: ScaleId): ScaleDefinition {
+  const definition = SCALE_DEFINITIONS.find((scale) => scale.id === scaleId);
+  if (!definition) {
+    throw new RangeError(`Unknown scale: ${scaleId}`);
+  }
+  return definition;
+}
+
+export function scaleQuality(scaleId: ScaleId): ScaleQuality {
+  return getScaleDefinition(scaleId).quality;
+}
+
+/** Labels a distance from the root as a scale degree, e.g. 3 semitones → ♭3. */
+export function scaleDegreeLabel(semitones: number): string {
+  return DEGREE_LABELS[normalizePitchClass(semitones)];
+}
+
+/**
+ * Semitone steps between consecutive scale notes, ending with the step back
+ * up to the root an octave higher. On one bass string, a step is that many frets.
+ */
+export function getScaleSteps(scaleId: ScaleId): number[] {
+  const intervals: readonly number[] = getScaleDefinition(scaleId).intervals;
+  return intervals.map(
+    (interval, index) => (intervals[index + 1] ?? 12) - interval,
+  );
+}
+
 export function getScaleNotes(
   root: PitchClass,
   scaleId: ScaleId,
 ): readonly PitchClass[] {
   assertPitchClass(root);
-  const definition = SCALE_DEFINITIONS.find((scale) => scale.id === scaleId);
-  if (!definition) {
-    throw new RangeError(`Unknown scale: ${scaleId}`);
-  }
-  return definition.intervals.map((interval) =>
+  return getScaleDefinition(scaleId).intervals.map((interval) =>
     normalizePitchClass(root + interval),
   );
 }

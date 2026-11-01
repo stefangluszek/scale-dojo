@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { STANDARD_BASS } from '../domain/instruments/fretted';
 import { scalePlaybackNotes } from '../domain/music/playback';
-import { type PitchClass, type ScaleId } from '../domain/music/scales';
+import {
+  scaleQuality,
+  type PitchClass,
+  type ScaleId,
+} from '../domain/music/scales';
 import { BassFretboard } from '../features/instruments/BassFretboard';
 import { ScaleExplorer } from '../features/scales/ScaleExplorer';
 import { ScalePlayback } from '../features/scales/ScalePlayback';
@@ -46,11 +50,13 @@ export function App() {
             </p>
           </section>
 
-          <div className="practice-space">
+          {/* Scale colors follow the scale's mood: bright major, darker minor. */}
+          <div className="practice-space" data-quality={scaleQuality(scaleId)}>
             <ScaleExplorer
               root={root}
               scaleId={scaleId}
               playbackNotes={notes}
+              activeNote={playback.activeNote}
               onRootChange={(value) => {
                 playback.stop();
                 setRoot(value);

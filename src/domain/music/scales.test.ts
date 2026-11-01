@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   getScaleNotes,
+  getScaleSteps,
   isNoteInScale,
   midiToPitchClass,
   normalizePitchClass,
   noteName,
+  SCALE_DEFINITIONS,
+  scaleDegreeLabel,
+  scaleQuality,
   type PitchClass,
   type ScaleId,
 } from './scales';
@@ -103,4 +107,68 @@ describe('pitch classes and scale membership', () => {
       expect(() => isNoteInScale(midiNote, 0, 'major')).toThrow(RangeError);
     },
   );
+});
+
+describe('scale shape', () => {
+  it.each([
+    ['major-pentatonic', ['1', '2', '3', '5', '6'], [2, 2, 3, 2, 3]],
+    ['minor-pentatonic', ['1', '♭3', '4', '5', '♭7'], [3, 2, 2, 3, 2]],
+    ['major', ['1', '2', '3', '4', '5', '6', '7'], [2, 2, 1, 2, 2, 2, 1]],
+    [
+      'natural-minor',
+      ['1', '2', '♭3', '4', '5', '♭6', '♭7'],
+      [2, 1, 2, 2, 1, 2, 2],
+    ],
+  ] as const)(
+    'labels %s degrees against the major scale and measures its steps',
+    (id, degrees, steps) => {
+      const definition = SCALE_DEFINITIONS.find((scale) => scale.id === id)!;
+      expect(definition.intervals.map(scaleDegreeLabel)).toEqual(degrees);
+      expect(getScaleSteps(id)).toEqual(steps);
+    },
+  );
+
+  it('always steps exactly one octave from root to root', () => {
+    for (const { id } of SCALE_DEFINITIONS) {
+      expect(getScaleSteps(id).reduce((sum, step) => sum + step, 0)).toBe(12);
+    }
+  });
+
+  it('labels every chromatic distance, including octave wrap-around', () => {
+    expect(
+      Array.from({ length: 12 }, (_, semitones) => scaleDegreeLabel(semitones)),
+    ).toEqual([
+      '1',
+      '♭2',
+      '2',
+      '♭3',
+      '3',
+      '4',
+      '♭5',
+      '5',
+      '♭6',
+      '6',
+      '♭7',
+      '7',
+    ]);
+    expect(scaleDegreeLabel(12)).toBe('1');
+    expect(scaleDegreeLabel(-1)).toBe('7');
+  });
+
+  it('classifies scales by the third above the root', () => {
+    expect(scaleQuality('major')).toBe('major');
+    expect(scaleQuality('major-pentatonic')).toBe('major');
+    expect(scaleQuality('natural-minor')).toBe('minor');
+    expect(scaleQuality('minor-pentatonic')).toBe('minor');
+    for (const { id, intervals } of SCALE_DEFINITIONS) {
+      const semitones: readonly number[] = intervals;
+      const third = semitones.find((i) => i === 3 || i === 4);
+      expect(scaleQuality(id)).toBe(third === 4 ? 'major' : 'minor');
+    }
+  });
+
+  it('rejects an unknown scale when measuring steps or quality', () => {
+    expect(() => getScaleSteps('unknown' as ScaleId)).toThrow('Unknown scale');
+    expect(() => scaleQuality('unknown' as ScaleId)).toThrow('Unknown scale');
+  });
 });

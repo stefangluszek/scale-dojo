@@ -109,6 +109,10 @@ test('production app keeps selectors, chips and accessible fretboard synchronize
       .getByRole('list', { name: 'Notes in the selected scale' })
       .locator('.note-name'),
   ).toHaveText(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+  await expect(page.locator('.practice-space')).toHaveAttribute(
+    'data-quality',
+    'minor',
+  );
   await expect(
     page.getByRole('button', { name: 'A1 string, open, A1, root. Play note' }),
   ).toHaveText(/R/);
@@ -207,6 +211,44 @@ test('click and keyboard notes produce real audio at the mapped pitch', async ({
   expect(await page.evaluate(() => window.audioProbe.microphoneRequests)).toBe(
     0,
   );
+});
+
+test('circle notes respond to pointer clicks, including notes outside the scale', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await expect(page.locator('.practice-space')).toHaveAttribute(
+    'data-quality',
+    'major',
+  );
+  const second = page.getByRole('button', { name: 'Play D2, scale degree 2' });
+  await second.click();
+  await expect
+    .poll(() => page.evaluate(() => window.audioProbe.notes.length))
+    .toBe(1);
+  expect(
+    await page.evaluate(() => window.audioProbe.notes[0]!.frequency),
+  ).toBeCloseTo(73.4162, 4);
+  await expect(second).toHaveClass(/circle-playing/);
+  const outside = page.getByRole('button', {
+    name: 'Play C#2, outside scale',
+  });
+  await outside.click();
+  await expect
+    .poll(() => page.evaluate(() => window.audioProbe.notes.length))
+    .toBe(2);
+  expect(
+    await page.evaluate(() => window.audioProbe.notes[1]!.frequency),
+  ).toBeCloseTo(69.2957, 4);
+  await expect(outside).toHaveClass(/circle-playing/);
+  await page.setViewportSize({ width: 320, height: 700 });
+  const circle = await page.locator('.scale-circle').boundingBox();
+  expect(circle!.x).toBeGreaterThanOrEqual(0);
+  expect(circle!.x + circle!.width).toBeLessThanOrEqual(320);
+  await page.getByRole('button', { name: 'Play A2, scale degree 6' }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.audioProbe.notes.length))
+    .toBe(3);
 });
 
 test('scale playback follows direction and tempo, and cancels on Stop and selection changes', async ({

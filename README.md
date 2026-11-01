@@ -9,7 +9,8 @@ Scale Dojo is a static web app intended for **GitHub Pages**. It runs in the bro
 Stages 0 and 1 are implemented:
 
 - Root and scale selection for major, natural minor, major pentatonic, and minor pentatonic scales.
-- Clickable scale-note chips, with the root identified.
+- A scale circle: the twelve semitones clockwise with the root at the top, scale notes joined into the scale's shape, scale-degree labels (1, 2, ♭3, …), and frets between notes. Every position, including notes outside the scale, can be tapped to hear it.
+- Scale colors that follow the scale's mood: warm gold for major scales and dusk blue for minor scales, shared by the circle and the fretboard.
 - A responsive four-string bass fretboard from open strings through fret 12, with labeled notes, accessible root markers, and intentional horizontal scrolling on small screens.
 - Click-to-hear synthesized notes and one-octave ascending/descending scale playback at 40–240 BPM, with Stop and matching-pitch highlights.
 - A tested music domain and standard four-string bass definition and fret-position mapping.
@@ -18,7 +19,7 @@ Stages 0 and 1 are implemented:
 
 Microphone input, live note feedback, session recording, and other instrument views remain planned stages. The app does not request microphone access or record audio. Note labels use sharps for accidentals; full key-aware spelling is future work.
 
-The fretboard shows G2 at the top and E1 at the bottom. Root notes have an **R** and a square marker; other scale notes have a dot. Every note button names its string, fret, octave, and scale membership. Chips play the corresponding note in the scale's displayed playback octave. Playback starts at the lowest root available above or at E1 and includes the upper root, or reverses that sequence for descending playback. Changing root, scale, or tempo stops playback; tap Play again to use the new settings. Backgrounding the page also stops playback.
+The fretboard shows G2 at the top and E1 at the bottom. Root notes have an **R** and a square marker; other scale notes have a dot. Every note button names its string, fret, octave, and scale membership. Circle notes play in the scale's displayed playback octave. Because the circle has no octaves, a playing pitch lights up its note on the circle in any octave, while the fretboard highlights only the exact pitch. Playback starts at the lowest root available above or at E1 and includes the upper root, or reverses that sequence for descending playback. Changing root, scale, or tempo stops playback; tap Play again to use the new settings. Backgrounding the page also stops playback.
 
 Audio starts only after a click or keyboard activation and uses synthesized triangle tones, not recorded bass samples. An unavailable audio engine shows a recoverable message while the fretboard remains usable. Browser tests verify real Web Audio output in Chromium desktop and mobile emulation; physical phones, speaker quality, and other browser engines have not been validated.
 

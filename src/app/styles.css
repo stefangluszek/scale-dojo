@@ -1,4 +1,14 @@
 :root {
+  /* Scale colors; .practice-space swaps them for the selected scale's mood. */
+  --scale-fill: #e2eacb;
+  --scale-edge: #657748;
+  --scale-ink: #203d32;
+  --scale-sub: #52624f;
+  --root-bg: #203d32;
+  --root-ink: #fffef9;
+  --root-sub: #d0dfad;
+  --shape-fill: rgb(101 119 72 / 11%);
+  --playing: #b85629;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: #203d32;
   background: #f6f4ec;
@@ -165,43 +175,240 @@ select {
 }
 .scale-result {
   border-top: 1px solid #e4e7da;
-  padding-top: 24px;
+  padding-top: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
 }
-.scale-summary {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
+
+/* Scale circle: twelve semitones clockwise, root at 12 o'clock. */
+.scale-circle {
+  --note-size: 56px;
+  --outside-size: 30px;
+  --circle-inset: calc(var(--note-size) / 2 + 6px);
+  --circle-radius: calc(50% - var(--circle-inset));
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1;
+  margin: 0 auto;
 }
-.scale-summary h3 {
-  font-size: 16px;
+.circle-shape {
+  position: absolute;
+  left: var(--circle-inset);
+  top: var(--circle-inset);
+  width: calc(100% - 2 * var(--circle-inset));
+  height: calc(100% - 2 * var(--circle-inset));
+  overflow: visible;
+}
+.circle-ring {
+  fill: none;
+  stroke: #dfe3d6;
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+.circle-polygon {
+  fill: var(--shape-fill);
+  stroke: var(--scale-edge);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.circle-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.circle-center h3 {
+  font-size: 14px;
   font-weight: 550;
+  line-height: 1.3;
 }
-.scale-summary > span {
+.circle-root-name {
+  display: block;
+  margin-bottom: 6px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 54px;
+  font-weight: 400;
+  line-height: 1;
+}
+.circle-center p {
+  margin-top: 2px;
   font-size: 12px;
   color: #65715b;
-  white-space: nowrap;
 }
-.note-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-  gap: 12px;
-  margin: 20px 0 0;
+.circle-notes {
+  position: absolute;
+  inset: 0;
+  margin: 0;
   padding: 0;
   list-style: none;
+  pointer-events: none;
 }
-.note {
-  width: 100%;
-  color: inherit;
+.circle-note {
+  position: absolute;
+  display: flex;
+  transform: translate(-50%, -50%);
+}
+.circle-note button {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 108px;
-  gap: 5px;
-  background: #edf0e3;
-  border: 1px solid transparent;
+  gap: 1px;
+  width: var(--note-size);
+  height: var(--note-size);
+  padding: 0;
+  border: 1px solid var(--scale-edge);
+  border-radius: 50%;
+  background: var(--scale-fill);
+  color: var(--scale-ink);
+  pointer-events: auto;
+}
+.circle-root button {
+  width: calc(var(--note-size) + 2px);
+  height: calc(var(--note-size) + 2px);
+  border: 2px solid var(--root-bg);
   border-radius: 12px;
+  background: var(--root-bg);
+  color: var(--root-ink);
+}
+.circle-outside button {
+  width: var(--outside-size);
+  height: var(--outside-size);
+  border-color: #c3cbb9;
+  background: #fffef9;
+  color: #5f6b58;
+  font-size: 10px;
+}
+.circle-note .note-name {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  line-height: 1.05;
+}
+.note-degree {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  color: var(--scale-sub);
+}
+.circle-root .note-degree {
+  color: var(--root-sub);
+}
+.circle-note button:hover {
+  outline: 2px solid var(--scale-edge);
+  outline-offset: 2px;
+}
+.circle-note button.circle-playing {
+  box-shadow:
+    0 0 0 3px #fffef9,
+    0 0 0 6px var(--playing);
+}
+
+/* Reading guide beside the circle. */
+.guide-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.guide-copy {
+  max-width: 440px;
+  margin-top: 10px;
+  color: #5d6954;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.scale-formula {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0 0;
+}
+.scale-formula > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.scale-formula dt {
+  color: #6b755a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.scale-formula dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pill-list li {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f0f2e8;
+  font-size: 13px;
+  font-weight: 650;
+}
+.formula-end {
+  color: #52624f;
+  font-size: 12px;
+}
+.circle-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 22px;
+  font-size: 12px;
+}
+.circle-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+.swatch-root {
+  border-radius: 4px;
+  background: var(--root-bg);
+}
+.swatch-scale {
+  border: 1px solid var(--scale-edge);
+  background: var(--scale-fill);
+}
+.swatch-outside {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #c3cbb9;
+  background: #fffef9;
+}
+.swatch-playing {
+  background: #fffef9;
+  box-shadow: 0 0 0 2px var(--playing);
+}
+.scale-guide .explorer-hint {
+  margin-top: 18px;
 }
 
 button {
@@ -216,6 +423,28 @@ button:disabled {
   border-radius: 18px;
   background: #fffef9;
   overflow: hidden;
+}
+/* Major scales sound bright: warm gold. */
+.practice-space[data-quality='major'] {
+  --scale-fill: #fbe5a0;
+  --scale-edge: #c48a0e;
+  --scale-ink: #3d2c05;
+  --scale-sub: #6e5210;
+  --root-bg: #8a5a00;
+  --root-ink: #fffdf3;
+  --root-sub: #fbe5a0;
+  --shape-fill: rgb(240 180 30 / 16%);
+}
+/* Minor scales sound darker: dusk blue. */
+.practice-space[data-quality='minor'] {
+  --scale-fill: #dbe3f1;
+  --scale-edge: #5b7097;
+  --scale-ink: #1f2c45;
+  --scale-sub: #44567a;
+  --root-bg: #2e3f63;
+  --root-ink: #f7f9fd;
+  --root-sub: #c9d5ec;
+  --shape-fill: rgb(91 112 151 / 14%);
 }
 .practice-space .explorer {
   border: 0;
@@ -258,8 +487,7 @@ button:disabled {
   border: 1px solid #cbd2be;
   border-radius: 8px;
 }
-.playback-buttons button:hover:not(:disabled),
-.note:hover {
+.playback-buttons button:hover:not(:disabled) {
   box-shadow: inset 0 0 0 2px #657748;
 }
 .playback-status {
@@ -339,15 +567,15 @@ button:disabled {
   font-size: 15px;
 }
 .fret-in-scale {
-  background: #e2eacb;
-  color: #203d32;
-  border-color: #657748;
+  background: var(--scale-fill);
+  color: var(--scale-ink);
+  border-color: var(--scale-edge);
 }
 .fret-root {
   border-radius: 8px;
-  background: #203d32;
-  color: #fffef9;
-  border: 2px solid #203d32;
+  background: var(--root-bg);
+  color: var(--root-ink);
+  border: 2px solid var(--root-bg);
 }
 .fret-cue {
   font-size: 10px;
@@ -355,7 +583,7 @@ button:disabled {
   line-height: 12px;
 }
 .fret-playing {
-  box-shadow: 0 0 0 3px #b85629;
+  box-shadow: 0 0 0 3px var(--playing);
 }
 .fret-note:hover {
   outline: 2px solid #657748;
@@ -371,24 +599,6 @@ button:disabled {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
-}
-.note-name {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 36px;
-  line-height: 1.15;
-}
-.note-caption {
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #59664f;
-}
-.note-root {
-  background: #203d32;
-  color: #f4f3d8;
-}
-.note-root .note-caption {
-  color: #d0dfad;
 }
 .explorer-hint {
   margin-top: 24px;
@@ -458,6 +668,12 @@ button:disabled {
 .skip-link:focus {
   top: 10px;
 }
+@media (max-width: 760px) {
+  .scale-result {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
 @media (max-width: 640px) {
   .app-shell {
     padding: 0 20px;
@@ -488,15 +704,23 @@ button:disabled {
     grid-template-columns: minmax(85px, 1fr) minmax(0, 2fr);
     gap: 10px;
   }
-  .note-list {
-    gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  .scale-circle {
+    --note-size: 46px;
+    --outside-size: 28px;
   }
-  .note {
-    min-height: 88px;
+  .circle-note .note-name {
+    font-size: 17px;
   }
-  .note-name {
-    font-size: 30px;
+  .circle-root-name {
+    font-size: 40px;
+    margin-bottom: 4px;
+  }
+  .circle-center h3 {
+    font-size: 12px;
+  }
+  .scale-formula > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
   }
   .practice-steps {
     grid-template-columns: 1fr;
