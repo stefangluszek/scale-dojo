@@ -189,9 +189,14 @@ describe('note stabilizer with controlled timestamps', () => {
 
 /**
  * Runs the detector and stabilizer like the live app: a window every
- * ANALYSIS_INTERVAL_MS, each ending at that moment.
+ * ANALYSIS_INTERVAL_MS, each ending at that moment. Stops early once
+ * `until` matches, since each window costs a full detector run.
  */
-function listen(signal: Float32Array, sampleRate: number) {
+function listen(
+  signal: Float32Array,
+  sampleRate: number,
+  until: (time: number, reading: LiveReading) => boolean = () => false,
+) {
   const size = analysisWindowSize(sampleRate);
   const stabilizer = new NoteStabilizer();
   const readings: { time: number; reading: LiveReading }[] = [];
@@ -205,14 +210,13 @@ function listen(signal: Float32Array, sampleRate: number) {
     const available = signal.subarray(Math.max(0, end - size), end);
     window.set(available, size - available.length);
     const level = rootMeanSquare(window);
-    readings.push({
+    const reading = stabilizer.push({
       time,
-      reading: stabilizer.push({
-        time,
-        level,
-        estimate: level > 0 ? detectPitch(window, sampleRate) : null,
-      }),
+      level,
+      estimate: level > 0 ? detectPitch(window, sampleRate) : null,
     });
+    readings.push({ time, reading });
+    if (until(time, reading)) break;
   }
   return readings;
 }
@@ -251,81 +255,98 @@ function firstNoteTime(
   )?.time;
 }
 
-describe('detector and stabilizer on deterministic recordings', () => {
-  it.each([44100, 48000])(
-    'shows a clean note within the latency target at %i Hz',
-    (sampleRate) => {
-      for (const [midi, target] of [
-        [28, 200], // E1
-        [33, 150], // A1
-        [40, 150], // E2
-        [55, 150], // G3
-      ] as const) {
-        const signal = concat(
-          gap(500, sampleRate),
-          note(midi, 800, sampleRate),
-        );
-        const shown = firstNoteTime(listen(signal, sampleRate), midi, 500);
-        expect(shown! - 500, `MIDI ${midi}`).toBeLessThanOrEqual(target);
-      }
-    },
-  );
+// Every window runs the real detector, which coverage instrumentation slows
+// several times over; give slower CI runners room.
+describe(
+  'detector and stabilizer on deterministic recordings',
+  { timeout: 20_000 },
+  () => {
+    it.each([44100, 48000])(
+      'shows a clean note within the latency target at %i Hz',
+      (sampleRate) => {
+        for (const [midi, target] of [
+          [28, 200], // E1
+          [33, 150], // A1
+          [40, 150], // E2
+          [55, 150], // G3
+        ] as const) {
+          const signal = concat(
+            gap(500, sampleRate),
+            note(midi, 400, sampleRate),
+          );
+          const readings = listen(
+            signal,
+            sampleRate,
+            (_, reading) => reading.kind === 'note',
+          );
+          const shown = firstNoteTime(readings, midi, 500);
+          expect(shown! - 500, `MIDI ${midi}`).toBeLessThanOrEqual(target);
+        }
+      },
+    );
 
-  it('turns a sustained, decaying note into one steady reading', () => {
-    const sampleRate = 48000;
-    const signal = concat(
-      gap(300, sampleRate),
-      note(28, 2000, sampleRate, 'phone', { decay: 1.5 }),
-      gap(400, sampleRate),
-    );
-    const readings = listen(signal, sampleRate).map(({ reading }) =>
-      reading.kind === 'note' ? reading.midi : reading.kind,
-    );
-    const notes = readings.filter((value) => typeof value === 'number');
-    expect(new Set(notes)).toEqual(new Set([28]));
-    // Silence, a short confirmation, one unbroken note, then silence again.
-    const changes = readings.filter(
-      (value, index) => index === 0 || value !== readings[index - 1],
-    );
-    expect(changes).toEqual(['silent', 'unclear', 28, 'silent']);
-  });
+    it('turns a sustained, decaying note into one steady reading', () => {
+      const sampleRate = 48000;
+      const signal = concat(
+        gap(300, sampleRate),
+        note(28, 1200, sampleRate, 'phone', { decay: 2 }),
+        gap(400, sampleRate),
+      );
+      const readings = listen(signal, sampleRate).map(({ reading }) =>
+        reading.kind === 'note' ? reading.midi : reading.kind,
+      );
+      const notes = readings.filter((value) => typeof value === 'number');
+      expect(new Set(notes)).toEqual(new Set([28]));
+      // Silence, a short confirmation, one unbroken note, then silence again.
+      const changes = readings.filter(
+        (value, index) => index === 0 || value !== readings[index - 1],
+      );
+      expect(changes).toEqual(['silent', 'unclear', 28, 'silent']);
+    });
 
-  it('keeps two plucks of the same note apart when silence separates them', () => {
-    const sampleRate = 44100;
-    const signal = concat(
-      gap(200, sampleRate),
-      note(33, 600, sampleRate),
-      gap(300, sampleRate),
-      note(33, 600, sampleRate, 'bass', { seed: 9 }),
-      gap(300, sampleRate),
-    );
-    const kinds = listen(signal, sampleRate).map(({ reading }) =>
-      reading.kind === 'note' ? 'A1' : reading.kind,
-    );
-    const runs = kinds.filter(
-      (value, index) => index === 0 || value !== kinds[index - 1],
-    );
-    expect(runs.filter((value) => value === 'A1')).toHaveLength(2);
-    expect(runs).toContain('silent');
-  });
+    it('keeps two plucks of the same note apart when silence separates them', () => {
+      const sampleRate = 44100;
+      const signal = concat(
+        gap(200, sampleRate),
+        note(33, 600, sampleRate),
+        gap(300, sampleRate),
+        note(33, 600, sampleRate, 'bass', { seed: 9 }),
+        gap(300, sampleRate),
+      );
+      const kinds = listen(signal, sampleRate).map(({ reading }) =>
+        reading.kind === 'note' ? 'A1' : reading.kind,
+      );
+      const runs = kinds.filter(
+        (value, index) => index === 0 || value !== kinds[index - 1],
+      );
+      expect(runs.filter((value) => value === 'A1')).toHaveLength(2);
+      expect(runs).toContain('silent');
+    });
 
-  it('follows a melody and never reports silence or noise as a note', () => {
-    const sampleRate = 48000;
-    const melody = [28, 31, 33, 35, 38];
-    const signal = concat(
-      ...melody.flatMap((midi) => [
-        note(midi, 400, sampleRate, 'phone'),
-        gap(150, sampleRate),
-      ]),
-      whiteNoise(Math.round(sampleRate * 0.6), 0.05),
-    );
-    const readings = listen(signal, sampleRate);
-    const heardNotes = readings
-      .map(({ reading }) => (reading.kind === 'note' ? reading.midi : null))
-      .filter((midi, index, all) => midi !== null && midi !== all[index - 1]);
-    expect(heardNotes).toEqual(melody);
-    // The trailing noise is loud, but unclear rather than a wrong note.
-    const noise = readings.filter(({ time }) => time > 2850);
-    expect(noise.every(({ reading }) => reading.kind === 'unclear')).toBe(true);
-  });
-});
+    it('follows a melody and never reports silence or noise as a note', () => {
+      const sampleRate = 48000;
+      const melody = [28, 31, 33, 35, 38];
+      const step = 300 + 150;
+      const signal = concat(
+        ...melody.flatMap((midi) => [
+          note(midi, 300, sampleRate, 'phone'),
+          gap(150, sampleRate),
+        ]),
+        whiteNoise(Math.round(sampleRate * 0.3), 0.05),
+      );
+      const readings = listen(signal, sampleRate);
+      const heardNotes = readings
+        .map(({ reading }) => (reading.kind === 'note' ? reading.midi : null))
+        .filter((midi, index, all) => midi !== null && midi !== all[index - 1]);
+      expect(heardNotes).toEqual(melody);
+      // The trailing noise is loud, but unclear rather than a wrong note.
+      // Skip the first windows, which still hold the last gap's silence.
+      const noiseStart = melody.length * step;
+      const noise = readings.filter(({ time }) => time > noiseStart + 100);
+      expect(noise.length).toBeGreaterThan(3);
+      expect(noise.every(({ reading }) => reading.kind === 'unclear')).toBe(
+        true,
+      );
+    });
+  },
+);

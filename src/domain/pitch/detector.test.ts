@@ -80,7 +80,9 @@ describe('root mean square level', () => {
   });
 });
 
-describe('McLeod pitch detection', () => {
+// The sweeps run the detector dozens of times, which coverage
+// instrumentation slows several times over; give slower CI runners room.
+describe('McLeod pitch detection', { timeout: 20_000 }, () => {
   it.each([44100, 48000])(
     'finds every bass note from E1 to G4 at %i Hz within a cent',
     (sampleRate) => {
