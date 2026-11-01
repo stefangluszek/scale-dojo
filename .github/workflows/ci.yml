@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   check:
-    name: Format, test, typecheck, build
+    name: Format, test, typecheck, build, browser smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,3 +26,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: browser-test-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

@@ -15,14 +15,18 @@ Keep changes focused on a stage or a clearly defined fix. Music and instrument r
 npm run test:watch
 npm run format
 npm run check
+npx playwright install chromium
+npm run test:browser
 ```
 
-The final command checks formatting, runs tests with coverage, type-checks, and builds. Coverage has an 85% minimum for lines, statements, functions, and branches. Add tests for meaningful behavior and edge cases; avoid tests that merely repeat implementation details or snapshot large screens.
+`npm run check` checks formatting, runs tests with coverage, type-checks, and builds. `npm run test:browser` builds and runs the desktop/mobile smoke suite. Coverage has an 85% minimum for lines, statements, functions, and branches. Add tests for meaningful behavior and edge cases; avoid tests that merely repeat implementation details or snapshot large screens.
 
 - Test music rules with known examples and boundary cases.
 - Test UI through accessible controls and visible outcomes using Testing Library.
 - Keep tests beside the code they exercise; shared setup lives in `src/test/`.
-- Add browser smoke tests in stage 1 and deterministic audio fixtures in stage 2.
+- Keep production browser smoke tests in `tests/browser/`; they cover desktop and mobile Chromium emulation under `/scale-dojo/`. Install Chromium with `npx playwright install --with-deps chromium` on Linux CI.
+- Inspect desktop/mobile screenshots in `test-results/` after UI changes. Browser tests observe real output nodes and sample their audio signal; this does not validate physical speakers or microphone input.
+- Add deterministic microphone audio fixtures in stage 2.
 - Distinguish mocked/synthetic audio checks from real microphone validation in change notes.
 
 Use the checked-in lockfile. Commit dependency updates together with `package-lock.json`; keep generated `dist/`, `coverage/`, and `node_modules/` out of version control.

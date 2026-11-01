@@ -21,7 +21,8 @@ a {
   text-underline-offset: 4px;
 }
 button,
-select {
+select,
+input {
   font: inherit;
 }
 ::selection {
@@ -190,6 +191,8 @@ select {
   list-style: none;
 }
 .note {
+  width: 100%;
+  color: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -199,6 +202,175 @@ select {
   background: #edf0e3;
   border: 1px solid transparent;
   border-radius: 12px;
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.practice-space {
+  border: 1px solid #cbd2be;
+  border-radius: 18px;
+  background: #fffef9;
+  overflow: hidden;
+}
+.practice-space .explorer {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.playback,
+.fretboard-section {
+  padding: 28px 32px;
+  border-top: 1px solid #e4e7da;
+}
+.playback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 18px 28px;
+}
+.playback h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.tempo-control {
+  align-self: center;
+}
+.tempo-control input {
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  accent-color: #203d32;
+}
+.playback-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.playback-buttons button {
+  min-height: 44px;
+  padding: 10px 14px;
+  color: #203d32;
+  background: #edf0e3;
+  border: 1px solid #cbd2be;
+  border-radius: 8px;
+}
+.playback-buttons button:hover:not(:disabled),
+.note:hover {
+  box-shadow: inset 0 0 0 2px #657748;
+}
+.playback-status {
+  align-self: center;
+  font-size: 13px;
+}
+.audio-error {
+  grid-column: 1 / -1;
+  color: #923919;
+  font-size: 14px;
+}
+.fretboard-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12px;
+  margin: 16px 0;
+}
+.fretboard-legend b {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+}
+.fretboard-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 6px 4px 16px;
+  border-radius: 8px;
+}
+.fretboard {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+  min-width: 860px;
+  font-size: 12px;
+  text-align: center;
+}
+.fretboard th {
+  font-weight: 600;
+  height: 40px;
+}
+.fretboard th:first-child {
+  width: 58px;
+  position: sticky;
+  left: -4px;
+  z-index: 1;
+  background: #fffef9;
+}
+.fretboard td {
+  height: 76px;
+  border-right: 1px solid #cbd2be;
+  background: linear-gradient(
+    transparent 49%,
+    #bac4b3 49%,
+    #bac4b3 51%,
+    transparent 51%
+  );
+}
+.fretboard td:nth-child(2) {
+  border-right: 4px solid #83917a;
+  background-color: #f0f2e8;
+}
+.fret-note {
+  display: inline-flex;
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 52px;
+  gap: 1px;
+  border: 1px solid #a5af9c;
+  border-radius: 24px;
+  background: #fffef9;
+  color: #52624f;
+  font-size: 15px;
+}
+.fret-in-scale {
+  background: #e2eacb;
+  color: #203d32;
+  border-color: #657748;
+}
+.fret-root {
+  border-radius: 8px;
+  background: #203d32;
+  color: #fffef9;
+  border: 2px solid #203d32;
+}
+.fret-cue {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 12px;
+}
+.fret-playing {
+  box-shadow: 0 0 0 3px #b85629;
+}
+.fret-note:hover {
+  outline: 2px solid #657748;
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 .note-name {
   font-family: Georgia, 'Times New Roman', serif;
@@ -301,6 +473,16 @@ select {
   }
   .explorer {
     padding: 22px 18px;
+  }
+  .playback,
+  .fretboard-section {
+    padding: 24px 18px;
+  }
+  .playback {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tempo-control {
+    max-width: 300px;
   }
   .scale-controls {
     grid-template-columns: minmax(85px, 1fr) minmax(0, 2fr);
