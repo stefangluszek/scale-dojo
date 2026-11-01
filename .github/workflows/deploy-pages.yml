@@ -1,8 +1,13 @@
 name: Deploy GitHub Pages
 
 # Enable Settings → Pages → Source: GitHub Actions before the first deployment.
-# Deployment is an explicit action while the project is being bootstrapped.
+# Publishes main automatically once CI (including browser tests) passes for a
+# push to main. Run it manually from the Actions tab to redeploy main.
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,13 +19,26 @@ concurrency:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main'
+    # Deploy only a successful CI run for a push to this repository's main
+    # branch (not a pull request whose branch happens to be named main), or a
+    # manual run on main.
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: read
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Publish exactly the commit CI tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc

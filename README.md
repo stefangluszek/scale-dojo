@@ -15,7 +15,7 @@ Stages 0 and 1 are implemented:
 - Click-to-hear synthesized notes and one-octave ascending/descending scale playback at 40–240 BPM, with Stop and matching-pitch highlights.
 - A tested music domain and standard four-string bass definition and fret-position mapping.
 - A React app, unit/component tests, coverage checks, a production build, and desktop/mobile Playwright smoke tests.
-- CI and a manually triggered GitHub Pages deployment workflow.
+- CI, and GitHub Pages deployment that publishes `main` automatically after CI passes.
 
 Microphone input, live note feedback, session recording, and other instrument views remain planned stages. The app does not request microphone access or record audio. Note labels use sharps for accidentals; full key-aware spelling is future work.
 
@@ -74,14 +74,16 @@ See [architecture](docs/architecture.md) for the decisions and boundaries, [impl
 
 ## Deploy to GitHub Pages
 
-Deployment is intentionally manual during bootstrap:
+Every change that lands on `main` is published automatically:
 
-1. Merge the bootstrap or subsequent changes into `main`; the deployment workflow only deploys that branch.
-2. In the GitHub repository, open **Settings → Pages** and select **GitHub Actions** as the build source.
-3. Run **Deploy GitHub Pages** from the **Actions** tab using **Run workflow**, selecting the `main` branch.
-4. Use the deployment URL reported by the workflow. For this repository, the expected address is `https://stefangluszek.github.io/scale-dojo/` once Pages is enabled and deployment succeeds.
+1. One-time setup: in the GitHub repository, open **Settings → Pages** and select **GitHub Actions** as the build source.
+2. Merge changes into `main`. The **CI** workflow runs the full check and browser tests for that push.
+3. When that CI run succeeds, **Deploy GitHub Pages** checks out the same commit, runs `npm run check` again, and publishes `dist/`. If CI fails or is cancelled, nothing is published.
+4. The site is served at `https://stefangluszek.github.io/scale-dojo/`; each deployment run reports its URL.
 
-The Vite base path is `/scale-dojo/`, so production assets work under the repository path. Change that setting if the repository is renamed or a custom domain is introduced. A build or push alone does not publish the app. See [Vite's GitHub Pages guide](https://vite.dev/guide/static-deploy#github-pages).
+To redeploy without a new commit, run **Deploy GitHub Pages** from the **Actions** tab using **Run workflow** on the `main` branch. Pull requests and pushes to other branches run checks but never publish.
+
+The Vite base path is `/scale-dojo/`, so production assets work under the repository path. Change that setting if the repository is renamed or a custom domain is introduced. See [Vite's GitHub Pages guide](https://vite.dev/guide/static-deploy#github-pages).
 
 ## Product direction
 

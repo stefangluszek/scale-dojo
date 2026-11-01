@@ -88,7 +88,7 @@ The current root and scale are ephemeral React state. Stage 3 introduces an expl
 
 `npm run test:browser` builds and starts a fresh production preview under `/scale-dojo/`. Playwright runs desktop Chromium (1440×1000) and mobile Chromium emulation (390×844, also checking 320px overflow). Smoke tests exercise selectors, labeled notes, scrolling, keyboard activation, real synthesized output, ascending/descending pitch order and tempo, cancellation, and unavailable audio. Test instrumentation observes real audio nodes and an analyser signal; unit tests mock the audio API for deterministic lifecycle checks. Neither is a physical-device listening test. Stage 2 adds microphone fixtures and real-instrument validation.
 
-CI checks changes without deploying them. The Pages workflow is manually dispatched after the repository's Pages source is configured as GitHub Actions. Vite's base is `/scale-dojo/`, and the deployment artifact is `dist/`. There is no client-side routing requirement at present; if routing is added, account for Pages' lack of arbitrary SPA route fallback.
+CI checks every change. The Pages workflow is triggered by a completed CI run (`workflow_run`) and deploys only when that run succeeded for a push to this repository's `main`; it checks out the exact commit CI tested and rebuilds it. It can also be dispatched manually on `main` to redeploy. The repository's Pages source must be configured as GitHub Actions. Deployments share one concurrency group, so a running deployment is never cancelled by the next. Vite's base is `/scale-dojo/`, and the deployment artifact is `dist/`. There is no client-side routing requirement at present; if routing is added, account for Pages' lack of arbitrary SPA route fallback.
 
 ## References
 
