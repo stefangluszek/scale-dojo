@@ -1,7 +1,7 @@
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { App } from './App';
+import { renderFullPage } from '../test/renderApp';
 
 function displayedNotes() {
   return within(
@@ -28,7 +28,7 @@ function formulaRow(term: string) {
 
 describe('scale explorer', () => {
   it('starts with C major pentatonic and identifies the root', () => {
-    render(<App />);
+    renderFullPage();
     expect(
       screen.getByRole('heading', { name: 'Make every note intentional.' }),
     ).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('scale explorer', () => {
 
   it('transposes the visible notes when the root changes', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Root note' }),
       '9',
@@ -59,7 +59,7 @@ describe('scale explorer', () => {
 
   it('updates scale notes and count while retaining the selected root', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Root note' }),
       '9',
@@ -77,7 +77,7 @@ describe('scale explorer', () => {
 
   it('distinguishes minor pentatonic from major pentatonic', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderFullPage();
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Scale' }),
       'minor-pentatonic',
@@ -87,7 +87,7 @@ describe('scale explorer', () => {
   });
 
   it('draws the scale on a circle with degrees, outside notes and fret steps', () => {
-    const { container } = render(<App />);
+    const { container } = renderFullPage();
     expect(circleButtons('Notes in the selected scale')).toEqual([
       'Play C2, root',
       'Play D2, scale degree 2',
@@ -129,7 +129,7 @@ describe('scale explorer', () => {
 
   it('keeps the shape when the root changes and colors minor scales differently', async () => {
     const user = userEvent.setup();
-    const { container } = render(<App />);
+    const { container } = renderFullPage();
     const shape = () =>
       container.querySelector('.circle-polygon')?.getAttribute('points');
     const majorShape = shape();

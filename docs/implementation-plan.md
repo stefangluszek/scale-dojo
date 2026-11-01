@@ -54,6 +54,8 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 **Follow-up (2026-11-01):** the evenly spaced note chips were replaced by a scale circle (root at 12 o'clock, twelve semitones, scale notes joined into a polygon) with scale-degree labels, frets between notes, and playable outside-scale notes. Major scales use warm gold and minor scales dusk blue on both the circle and the fretboard; text and shape cues still identify roots and membership without color. GitHub Pages now deploys automatically after CI passes on `main`, replacing the bootstrap's manual-only deployment; manual dispatch remains available for redeploys.
 
+**Follow-up (2026-11-01):** the page now opens in a zen mode with only the scale circle and fretboard; `?` or a header button toggles the full page with selectors, playback, and guides. Selection, focus on the toggle, and active playback highlights carry across views. Unit tests cover the default view, button and key toggling, ignored keys (form fields, modifiers, repeats), and zen audio errors; the browser suite checks that zen fits in one screen on desktop (1440×1000) and mobile (390×844) with no 320px overflow.
+
 **Next session:** stage 2 microphone input and live feedback. Preserve the output-only playback boundary and benchmark low-bass pitch detection before choosing an input implementation.
 
 ## Stage 2 — Microphone input and live note feedback

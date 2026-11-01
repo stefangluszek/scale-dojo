@@ -82,12 +82,44 @@ p {
   font-style: italic;
   font-weight: 400;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .preview-badge {
   border: 1px solid #ccd3c3;
   border-radius: 100px;
   padding: 7px 13px;
   font-size: 12px;
   color: #52624f;
+}
+.view-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 7px 0 16px;
+  border: 1px solid #ccd3c3;
+  border-radius: 100px;
+  background: transparent;
+  color: #203d32;
+  font-size: 13px;
+  font-weight: 550;
+}
+.view-toggle kbd {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #edf0e3;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+}
+.view-toggle:hover {
+  border-color: #657748;
 }
 .intro {
   padding: 66px 0 48px;
@@ -668,6 +700,123 @@ button:disabled {
 .skip-link:focus {
   top: 10px;
 }
+/* Zen mode: only the scale circle and the fretboard, on a quiet page. */
+.app-shell[data-view='zen'] {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+[data-view='zen'] .site-header {
+  height: 76px;
+  flex: none;
+  border-bottom: 0;
+}
+[data-view='zen'] .wordmark {
+  color: #6b755a;
+}
+[data-view='zen'] .brand-symbol {
+  width: 36px;
+  height: 36px;
+  border-color: #aab4a0;
+  font-size: 14px;
+}
+[data-view='zen'] .view-toggle {
+  width: 44px;
+  padding: 0;
+  border-color: #d3d9ca;
+  color: #52624f;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 19px;
+  font-weight: 400;
+}
+[data-view='zen'] main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Balance the header so the content sits near the optical center. */
+  padding-bottom: clamp(24px, 6vh, 76px);
+}
+[data-view='zen'] .practice-space {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+[data-view='zen'] .explorer {
+  padding: 0;
+  background: transparent;
+}
+[data-view='zen'] .scale-result {
+  display: block;
+  padding: 0;
+  border: 0;
+}
+[data-view='zen'] .scale-circle {
+  max-width: clamp(300px, 42vh, 420px);
+}
+[data-view='zen'] .circle-ring {
+  stroke: #e4e7da;
+}
+[data-view='zen'] .circle-outside button {
+  border-color: #d3d9ca;
+  background: transparent;
+  color: #7c8774;
+}
+[data-view='zen'] .circle-note button.circle-playing {
+  box-shadow:
+    0 0 0 3px #f6f4ec,
+    0 0 0 6px var(--playing);
+}
+[data-view='zen'] .fretboard-section {
+  margin-top: clamp(16px, 4vh, 44px);
+  padding: 0;
+  border: 0;
+}
+[data-view='zen'] .fretboard-scroll {
+  padding-bottom: 8px;
+}
+[data-view='zen'] .fretboard thead th {
+  height: 28px;
+  color: #8a9482;
+  font-size: 11px;
+  font-weight: 500;
+}
+[data-view='zen'] .fretboard th:first-child {
+  background: #f6f4ec;
+  color: #6b755a;
+}
+[data-view='zen'] .fretboard td {
+  height: 64px;
+  border-right-color: #dde1d3;
+  background: linear-gradient(
+    transparent 49.5%,
+    #ccd3c3 49.5%,
+    #ccd3c3 50.5%,
+    transparent 50.5%
+  );
+}
+[data-view='zen'] .fretboard td:nth-child(2) {
+  border-right: 3px solid #a3ad99;
+  background-color: transparent;
+}
+[data-view='zen'] .fret-note:not(.fret-in-scale, .fret-root) {
+  border-color: #d3d9ca;
+  background: #f6f4ec;
+  color: #7c8774;
+}
+/* Drop the "–" placeholder; root, scale and playing cues stay. */
+[data-view='zen']
+  .fret-note:not(.fret-in-scale, .fret-root, .fret-playing)
+  .fret-cue {
+  display: none;
+}
+[data-view='zen'] .audio-error {
+  margin-top: 16px;
+  text-align: center;
+}
+
 @media (max-width: 760px) {
   .scale-result {
     grid-template-columns: minmax(0, 1fr);
@@ -680,6 +829,12 @@ button:disabled {
   }
   .site-header {
     height: 84px;
+  }
+  .preview-badge {
+    display: none;
+  }
+  [data-view='zen'] .site-header {
+    height: 64px;
   }
   .intro {
     padding: 42px 0 32px;

@@ -10,6 +10,8 @@ import {
 import { ScaleCircle, spokenDegree } from './ScaleCircle';
 
 interface ScaleExplorerProps {
+  /** Show only the scale circle, without controls or the reading guide. */
+  minimal?: boolean;
   root: PitchClass;
   scaleId: ScaleId;
   playbackNotes: readonly number[];
@@ -20,6 +22,7 @@ interface ScaleExplorerProps {
 }
 
 export function ScaleExplorer({
+  minimal = false,
   root,
   scaleId,
   playbackNotes,
@@ -33,44 +36,52 @@ export function ScaleExplorer({
 
   return (
     <section className="explorer" aria-labelledby="explorer-heading">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">01 / Explore</p>
-          <h2 id="explorer-heading">Find your notes.</h2>
+      {minimal ? (
+        <h2 id="explorer-heading" className="sr-only">
+          Find your notes.
+        </h2>
+      ) : (
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">01 / Explore</p>
+            <h2 id="explorer-heading">Find your notes.</h2>
+          </div>
+          <span className="instrument-tag">4-string bass · E A D G</span>
         </div>
-        <span className="instrument-tag">4-string bass · E A D G</span>
-      </div>
+      )}
 
-      <div className="scale-controls">
-        <label>
-          Root note
-          <select
-            value={root}
-            onChange={(event) =>
-              onRootChange(Number(event.target.value) as PitchClass)
-            }
-          >
-            {NOTE_NAMES.map((name, pitchClass) => (
-              <option key={name} value={pitchClass}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Scale
-          <select
-            value={scaleId}
-            onChange={(event) => onScaleChange(event.target.value as ScaleId)}
-          >
-            {SCALE_DEFINITIONS.map((definition) => (
-              <option key={definition.id} value={definition.id}>
-                {definition.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {!minimal && (
+        <div className="scale-controls">
+          <label>
+            Root note
+            <select
+              value={root}
+              onChange={(event) =>
+                onRootChange(Number(event.target.value) as PitchClass)
+              }
+            >
+              {NOTE_NAMES.map((name, pitchClass) => (
+                <option key={name} value={pitchClass}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Scale
+            <select
+              value={scaleId}
+              onChange={(event) => onScaleChange(event.target.value as ScaleId)}
+            >
+              {SCALE_DEFINITIONS.map((definition) => (
+                <option key={definition.id} value={definition.id}>
+                  {definition.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       <div className="scale-result">
         <ScaleCircle
@@ -80,69 +91,76 @@ export function ScaleExplorer({
           activeNote={activeNote}
           onPlayNote={onPlayNote}
         />
-        <div className="scale-guide">
-          <p className="guide-title">Read it like a clock.</p>
-          <p className="guide-copy">
-            The root sits at 12 o&apos;clock. Each tick clockwise is one
-            semitone, one fret higher on the same string. The outline is the
-            scale&apos;s shape: long edges are jumps, short edges are small
-            steps.
-          </p>
-          <dl className="scale-formula">
-            <div>
-              <dt>Degrees</dt>
-              <dd>
-                <ol className="pill-list">
-                  {intervals.map((semitones) => {
-                    const degree = scaleDegreeLabel(semitones);
-                    return (
-                      <li key={semitones}>
-                        <span aria-hidden="true">{degree}</span>
-                        <span className="sr-only">{spokenDegree(degree)}</span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </dd>
-            </div>
-            <div>
-              <dt>Frets between notes</dt>
-              <dd>
-                <ol className="pill-list">
-                  {steps.map((step, index) => (
-                    <li key={index}>{step}</li>
-                  ))}
-                </ol>
-                <span className="formula-end">back to the root</span>
-              </dd>
-            </div>
-          </dl>
-          <p className="circle-legend">
-            <span>
-              <i className="swatch swatch-root" aria-hidden="true" />
-              Root (R)
-            </span>
-            <span>
-              <i className="swatch swatch-scale" aria-hidden="true" />
-              Scale note
-            </span>
-            <span>
-              <i className="swatch swatch-outside" aria-hidden="true" />
-              Outside scale
-            </span>
-            <span>
-              <i className="swatch swatch-playing" aria-hidden="true" />
-              Playing now
-            </span>
-          </p>
-          <p className="explorer-hint">
-            Start on the root. Play slowly, listen closely, and return home.
-          </p>
-        </div>
+        {!minimal && (
+          <div className="scale-guide">
+            <p className="guide-title">Read it like a clock.</p>
+            <p className="guide-copy">
+              The root sits at 12 o&apos;clock. Each tick clockwise is one
+              semitone, one fret higher on the same string. The outline is the
+              scale&apos;s shape: long edges are jumps, short edges are small
+              steps.
+            </p>
+            <dl className="scale-formula">
+              <div>
+                <dt>Degrees</dt>
+                <dd>
+                  <ol className="pill-list">
+                    {intervals.map((semitones) => {
+                      const degree = scaleDegreeLabel(semitones);
+                      return (
+                        <li key={semitones}>
+                          <span aria-hidden="true">{degree}</span>
+                          <span className="sr-only">
+                            {spokenDegree(degree)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </dd>
+              </div>
+              <div>
+                <dt>Frets between notes</dt>
+                <dd>
+                  <ol className="pill-list">
+                    {steps.map((step, index) => (
+                      <li key={index}>{step}</li>
+                    ))}
+                  </ol>
+                  <span className="formula-end">back to the root</span>
+                </dd>
+              </div>
+            </dl>
+            <p className="circle-legend">
+              <span>
+                <i className="swatch swatch-root" aria-hidden="true" />
+                Root (R)
+              </span>
+              <span>
+                <i className="swatch swatch-scale" aria-hidden="true" />
+                Scale note
+              </span>
+              <span>
+                <i className="swatch swatch-outside" aria-hidden="true" />
+                Outside scale
+              </span>
+              <span>
+                <i className="swatch swatch-playing" aria-hidden="true" />
+                Playing now
+              </span>
+            </p>
+            <p className="explorer-hint">
+              Start on the root. Play slowly, listen closely, and return home.
+            </p>
+          </div>
+        )}
       </div>
-      <p className="notation-note">
-        This early preview uses sharp note names. Key-aware spelling is planned.
-      </p>
+      {!minimal && (
+        <p className="notation-note">
+          This early preview uses sharp note names. Key-aware spelling is
+          planned.
+        </p>
+      )}
     </section>
   );
 }

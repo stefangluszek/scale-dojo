@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 interface ScheduledNote {
   frequency: number;
@@ -72,12 +72,71 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/** The app opens in zen mode; the full page holds selectors and playback. */
+async function openFullPage(page: Page) {
+  await page.getByRole('button', { name: 'Show full page' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Enter zen mode' }),
+  ).toBeVisible();
+}
+
+test('zen mode shows only the scale and fretboard, and ? toggles the full page', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  const circle = page.locator('.scale-circle');
+  const fretboard = page.getByRole('region', {
+    name: 'Scrollable bass fretboard',
+  });
+  await expect(
+    page.getByRole('heading', { name: 'C major pentatonic' }),
+  ).toBeVisible();
+  await expect(page.getByRole('table').getByRole('button')).toHaveCount(52);
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: /Play ascending/ }),
+  ).toHaveCount(0);
+  // Both fit on one screen without scrolling.
+  await expect(circle).toBeInViewport({ ratio: 1 });
+  await expect(fretboard).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: testInfo.outputPath('zen.png') });
+
+  await page.keyboard.press('?');
+  await expect(
+    page.getByRole('heading', { name: 'Find your notes.' }),
+  ).toBeVisible();
+  await expect(page.getByRole('combobox')).toHaveCount(2);
+  await page.getByRole('combobox', { name: 'Root note' }).selectOption('9');
+  await page.getByRole('button', { name: 'Enter zen mode' }).click();
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: 'A major pentatonic' }),
+  ).toBeVisible();
+  await page.keyboard.press('?');
+  await expect(page.getByRole('combobox')).toHaveCount(2);
+  await page.keyboard.press('?');
+  await expect(page.getByRole('combobox')).toHaveCount(0);
+
+  if (testInfo.project.name.startsWith('mobile')) {
+    await page.setViewportSize({ width: 320, height: 700 });
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 test('production app keeps selectors, chips and accessible fretboard synchronized', async ({
   page,
 }, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('./');
+  await openFullPage(page);
   await expect(
     page.getByRole('heading', { name: 'Find your notes.' }),
   ).toBeVisible();
@@ -165,6 +224,7 @@ test('click and keyboard notes produce real audio at the mapped pitch', async ({
   page,
 }) => {
   await page.goto('./');
+  await openFullPage(page);
   const note = page.getByRole('button', {
     name: 'E1 string, open, E1, scale note. Play note',
   });
@@ -213,10 +273,13 @@ test('click and keyboard notes produce real audio at the mapped pitch', async ({
   );
 });
 
-test('circle notes respond to pointer clicks, including notes outside the scale', async ({
+test('circle notes respond to pointer clicks in zen mode, including notes outside the scale', async ({
   page,
 }) => {
   await page.goto('./');
+  await expect(
+    page.getByRole('button', { name: 'Show full page' }),
+  ).toBeVisible();
   await expect(page.locator('.practice-space')).toHaveAttribute(
     'data-quality',
     'major',
@@ -255,6 +318,7 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
   page,
 }) => {
   await page.goto('./');
+  await openFullPage(page);
   const tempo = page.getByRole('slider', { name: 'Tempo' });
   await tempo.focus();
   await page.keyboard.press('Home');
@@ -320,6 +384,7 @@ test('audio unavailability leaves the visual explorer usable', async ({
     Object.defineProperty(window, 'AudioContext', { value: undefined });
   });
   await page.goto('./');
+  await openFullPage(page);
   await page.getByRole('button', { name: /Play ascending/ }).click();
   await expect(page.getByRole('alert')).toContainText(
     'Audio playback is unavailable',
