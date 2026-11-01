@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { positionsOfNote, STANDARD_BASS } from '../domain/instruments/fretted';
 import { scalePlaybackNotes } from '../domain/music/playback';
 import {
@@ -15,32 +15,60 @@ import { useLiveNote } from '../features/practice/useLiveNote';
 import { ScaleExplorer } from '../features/scales/ScaleExplorer';
 import { ScalePlayback } from '../features/scales/ScalePlayback';
 import { useNotePlayback } from '../features/scales/useNotePlayback';
+import { SessionPanel } from '../features/sessions/SessionPanel';
+import { usePracticeSessions } from '../features/sessions/usePracticeSessions';
+import {
+  DEFAULT_SETTINGS,
+  isSettings,
+  SETTINGS_KEY,
+  type Settings,
+} from '../platform/storage/settings';
+import { useStoredState } from '../platform/storage/useStoredState';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
-
-/** Zen shows only the scale circle and fretboard; full adds everything else. */
-type ViewMode = 'zen' | 'full';
 
 /** Key that toggles between zen mode and the full page. */
 const VIEW_TOGGLE_KEY = '?';
 
 export function App() {
-  const [root, setRoot] = useState<PitchClass>(0);
-  const [scaleId, setScaleId] = useState<ScaleId>('major-pentatonic');
-  const [tempo, setTempo] = useState(90);
+  const preferences = useStoredState(
+    SETTINGS_KEY,
+    isSettings,
+    DEFAULT_SETTINGS,
+  );
+  const { root, scaleId, tempo, view } = preferences.value;
+  const setRoot = (root: PitchClass) =>
+    preferences.update((settings) => ({ ...settings, root }));
+  const setScaleId = (scaleId: ScaleId) =>
+    preferences.update((settings) => ({ ...settings, scaleId }));
+  const setTempo = (tempo: number) =>
+    preferences.update((settings) => ({ ...settings, tempo }));
+  const setView = (view: Settings['view']) =>
+    preferences.update((settings) => ({ ...settings, view }));
   const playback = useNotePlayback();
-  const listening = useLiveNote();
+  const sessions = usePracticeSessions();
+  const listening = useLiveNote({
+    onReading: sessions.onReading,
+    onReady: sessions.ready,
+    onStop: sessions.finish,
+  });
   const heardNote =
     listening.status === 'listening' && listening.reading.kind === 'note'
       ? listening.reading.midi
       : null;
-  const [view, setView] = useState<ViewMode>('zen');
   const zen = view === 'zen';
   const notes = scalePlaybackNotes(root, scaleId, STANDARD_BASS.tuning[0]);
   const playNote = (note: number) => {
     void playback.play([note], tempo);
   };
-  const toggleView = () =>
-    setView((current) => (current === 'zen' ? 'full' : 'zen'));
+  const toggleView = () => setView(zen ? 'full' : 'zen');
+  const startSession = () => {
+    playback.stop();
+    sessions.begin(
+      { root, scaleId, instrument: STANDARD_BASS },
+      listening.status === 'listening',
+    );
+    if (listening.status === 'idle') listening.start();
+  };
 
   useKeyboardShortcuts({
     [VIEW_TOGGLE_KEY]: toggleView,
@@ -69,6 +97,15 @@ export function App() {
           <div className="header-actions">
             {!zen && <span className="preview-badge">Early preview</span>}
             <button
+              className="sessions-link"
+              onClick={() => {
+                flushSync(() => setView('full'));
+                document.getElementById('sessions-heading')?.focus();
+              }}
+            >
+              Sessions
+            </button>
+            <button
               type="button"
               className="view-toggle"
               aria-label={zen ? 'Show full page' : 'Enter zen mode'}
@@ -89,6 +126,20 @@ export function App() {
         </header>
 
         <main id="main">
+          {preferences.problem && (
+            <div className="storage-warning" role="alert">
+              <p>
+                {preferences.problem === 'invalid'
+                  ? 'Saved settings could not be read. Default settings are in use.'
+                  : 'Settings could not be saved on this device. Changes will last until you leave the page.'}
+              </p>
+              <button onClick={preferences.retry}>
+                {preferences.problem === 'invalid'
+                  ? 'Save default settings'
+                  : 'Retry saving settings'}
+              </button>
+            </div>
+          )}
           {zen ? (
             <h1 className="sr-only">Scale Dojo</h1>
           ) : (
@@ -164,6 +215,14 @@ export function App() {
               heardNote={heardNote}
               onPlayNote={playNote}
             />
+            <SessionPanel
+              sessions={sessions}
+              root={root}
+              scaleId={scaleId}
+              minimal={zen}
+              onStart={startSession}
+              onStop={listening.stop}
+            />
             {/* Playback controls are hidden in zen; notes can still fail. */}
             {zen && playback.error && (
               <p className="audio-error" role="alert">
@@ -178,8 +237,8 @@ export function App() {
               <h2 id="next-heading">From knowing to hearing.</h2>
               <p>
                 Explore the neck, hear each scale, then play it back on your
-                bass and see which notes belong. A record of the notes you play
-                is planned for a later stage.
+                bass and see which notes belong. Capture a session to review the
+                notes you played and see where they fit.
               </p>
               <ol className="practice-steps">
                 <li>
@@ -200,7 +259,7 @@ export function App() {
                   <span>03</span>
                   <div>
                     <h3>Follow your progress</h3>
-                    <p>Planned: review a sequence, note by note.</p>
+                    <p>Ready now: save and review a sequence, note by note.</p>
                   </div>
                 </li>
               </ol>

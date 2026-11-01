@@ -60,7 +60,7 @@ Each stage is a separate working session with a reviewable outcome. Keep later f
 
 ## Stage 2 — Microphone input and live note feedback
 
-**Status:** implemented and verified on deterministic recordings and Chromium's fake microphone (2026-11-01). **The real-instrument check below has not been done yet.**
+**Status:** implemented and verified on deterministic recordings and Chromium's fake microphone (2026-11-01). The project owner has retested pickup with a real bass and reports a substantial improvement after the adaptive silence-gate fix. The detailed accuracy, latency, and stability checks below remain to be documented.
 
 **Dependencies:** stage 1 visualizer; an explicit choice of pitch detector supported by a short benchmark.
 
@@ -109,11 +109,11 @@ MPM was chosen: it is the only one without octave errors on the octave trap and 
 - `npm run test:browser`: 20 tests passed across Chromium desktop (1440×1000) and mobile emulation (390×844), including the stage 1 suite. Chromium's fake microphone plays a generated E1/F1 bass recording through real `getUserMedia` capture and Web Audio analysis. The tests check the readout, scale membership, fretboard and circle rings, no request before Start, released tracks and closed audio context after Stop and after device loss, a blocked microphone, zen layout fit while listening, and no 320px overflow.
 - Desktop/mobile screenshots of both views while listening were visually inspected.
 
-**Manual check still to do (real instrument).** Run the deployed site or `npm run dev` on localhost with a bass, ideally twice: once through a laptop or phone microphone near an amplifier, once through an audio interface. Play each open string, fret 5, 7 and 12 on every string, a slow chromatic run on the E string, and the same note plucked repeatedly. Record whether each note and octave reads correctly, how long it takes to appear, whether tuning agrees with a hardware tuner within about 5 cents, whether held notes flicker, and whether the browser reports voice processing still on. Note the browser, device, and microphone. Update this section with the results.
+**Remaining detailed manual checks (real instrument).** Pickup improvement has been confirmed by the project owner; the following measurements remain to be documented. Run the deployed site or `npm run dev` on localhost with a bass, ideally twice: once through a laptop or phone microphone near an amplifier, once through an audio interface. Play each open string, fret 5, 7 and 12 on every string, a slow chromatic run on the E string, and the same note plucked repeatedly. Record whether each note and octave reads correctly, how long it takes to appear, whether tuning agrees with a hardware tuner within about 5 cents, whether held notes flicker, and whether the browser reports voice processing still on. Note the browser, device, and microphone. Update this section with the results.
 
 **Known limitations:**
 
-- Only Chromium was tested, with a fake microphone. Firefox, Safari, physical phones, real microphones, and rooms are untested. Phone and laptop microphones pick up little at 41 Hz; the weak-fundamental fixture models this, but real devices may be worse.
+- Automated browser tests cover Chromium with a fake microphone. The project owner's real-bass retest confirms improved pickup, but the browser, device, and input setup were not specified; broader browser/device coverage remains unverified. Phone and laptop microphones pick up little at 41 Hz; the weak-fundamental fixture models this, but real devices may be worse.
 - Monophonic: chords or strings left ringing give an unclear or dominant-note reading.
 - The silence gate adapts to the room but has no manual control. Notes need to be about 10 dB above the room's background, so quiet notes in a loud room stay below it, and a noisy room reads as "no clear note" for the few seconds the gate takes to rise. Steady pitched hum above the gate, such as mains hum on a noisy audio interface, can read as a note.
 - The range stops at 38 Hz, so five-string B0 (30.9 Hz) and drop-D's D1 (36.7 Hz) are not supported. Notes above 420 Hz read as unclear.
@@ -121,15 +121,17 @@ MPM was chosen: it is the only one without octave errors on the octave trap and 
 - Analysis runs on the main thread at 25 windows per second. Phone CPU use and latency have not been measured; `AudioWorklet` remains an option if they are inadequate.
 - Hiding the page stops listening. Synthesized playback is audible to the microphone while listening.
 
-**Follow-up (2026-11-01): first real-bass check.** The project owner tried the deployed app with an electric bass. Notes were detected, but only when the string was plucked very hard. The cause was the original fixed −48 dBFS RMS silence gate: with automatic gain control off, normal plucks arrive quieter than that. The gate now adapts to the room as described under **Pipeline**, so in a quiet room notes down to about −65 dBFS count, and the full page's level meter marks the gate. Unit tests cover quiet and noisy rooms, 20 seconds of continuous playing, digital silence, and a soft E1 at −58 dBFS over −75 dBFS room noise through the real detector. The fake-microphone browser test now plays its F1 at −58 dBFS over room noise; it fails with the old gate and passes with the new one. This change has not been re-checked with the real bass yet, and the rest of the manual check above is still to do.
+**Follow-up (2026-11-01): first real-bass check.** The project owner tried the deployed app with an electric bass. Notes were detected, but only when the string was plucked very hard. The cause was the original fixed −48 dBFS RMS silence gate: with automatic gain control off, normal plucks arrive quieter than that. The gate now adapts to the room as described under **Pipeline**, so in a quiet room notes down to about −65 dBFS count, and the full page's level meter marks the gate. Unit tests cover quiet and noisy rooms, 20 seconds of continuous playing, digital silence, and a soft E1 at −58 dBFS over −75 dBFS room noise through the real detector. The fake-microphone browser test now plays its F1 at −58 dBFS over room noise; it fails with the old gate and passes with the new one.
 
-**Next session:** stage 3, capturing and reviewing practice sequences. Build on `NoteStabilizer` readings and `useLiveNote`'s lifecycle; do the real-instrument check first if possible, since segmentation depends on how real notes start and decay.
+**Follow-up (2026-11-01): pickup retest confirmed.** The project owner retested the improved pickup and reported it is "much better than before." This confirms the practical improvement from the adaptive silence gate on their bass setup. Browser/device details and measured accuracy, latency, tuning, and held-note stability were not supplied; the detailed manual checks above remain open.
+
+**Next validation:** use the remaining real-instrument checks to validate session segmentation, since it depends on how real notes start and decay.
 
 ## Stage 3 — Capture and review practice sequences
 
-**Status:** planned.
+**Status:** implemented (2026-11-01), including persistent root, scale, tempo, and view preferences. Real-instrument segmentation checks remain to be documented.
 
-**Dependencies:** stage 2 stable note estimates and microphone lifecycle (implemented); ideally the stage 2 real-instrument check.
+**Dependencies:** stage 2 stable note estimates and microphone lifecycle (implemented). Real-bass pickup improvement is confirmed; detailed real-instrument checks remain useful for validating segmentation.
 
 **Deliverables:** session Start/Stop/Clear, a timestamped note sequence, in-scale/off-scale labels, a useful session summary, and browser-local persistence with a versioned format. A session records detected note events by default; raw audio recording is outside this stage.
 
@@ -144,6 +146,19 @@ MPM was chosen: it is the only one without octave errors on the octave trap and 
 - Users can review a sequence and identify which notes were outside its scale without relying only on color.
 
 **Tests:** event segmentation with controlled timestamps, held/repeated notes, silence boundaries, classification snapshots, lifecycle transitions, serialization round trips, invalid stored data, and browser capture/review flow using deterministic input.
+
+**Implementation:** Sessions are available from the header in both views. Start captures the selected context immediately and waits for microphone readiness before recording note events. Held pitches remain one event even when tuning changes; silence/unclear readings and pitch changes form boundaries. Stop session also stops listening. Captures finalize on Stop listening, backgrounding, device loss, pagehide, and teardown. Saved history includes note start times/durations, in-scale/outside-scale labels, counts and an in-scale percentage; empty sessions have no percentage. Clear requires confirmation and affects only that session.
+
+**Persistence:** version-1 localStorage envelopes keep sessions and settings in separate keys. Note boundaries and one-second checkpoints save active capture; interrupted checkpoints restore for review without restarting the microphone. Settings save immediately from both selectors and the circle picker; root, scale, tempo, and view all survive reload. Malformed or unavailable storage uses recoverable UI states with reset/retry controls. Raw audio is never retained. Same-browser/device persistence only; cross-tab merging and export remain outside this stage.
+
+**Verified outcome:**
+
+- `npm run check`: 196 unit/component tests passed, with 99.49% statement coverage, 98.52% branch coverage, and 100% function/line coverage; formatting, type checking, and production build passed.
+- All 24 production-browser cases passed across desktop Chromium (1440×1000) and mobile emulation (390×844), including 320px overflow checks. The new capture/review/reload cases passed after correcting their scale-selector locator; the other 22 cases passed in the full run. This environment used its installed Chromium through `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium` because the browser-download host was unavailable.
+- Browser capture uses a deterministic fake E1/F1 microphone recording and verifies stored notes, frozen classification, settings after reload, clear, and interrupted-session recovery without a new microphone request. Component/domain tests also cover held/repeated notes, permission cancellation, empty sessions, device loss/backgrounding, invalid storage, and retry after failed saves.
+- Desktop, mobile, and 320px session-review screenshots were visually inspected. Real-bass session segmentation and other browser engines remain unverified.
+
+**Next stage:** additional instruments and tunings (stage 4). Real-bass note segmentation should also be tried during normal practice.
 
 ## Stage 4 — Additional instruments and tunings
 

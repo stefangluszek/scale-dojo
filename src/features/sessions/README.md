@@ -1,7 +1,7 @@
 # Practice sessions
 
-Reserved for stage 3. Session capture and review are not implemented in the bootstrap.
+Stage 3 is implemented. `usePracticeSessions` owns pending capture, note events, history selection, saving, and stop/clear behavior. `SessionPanel` provides capture controls, a summary, note-by-note review, and saved history, with compact Stop controls during zen capture.
 
-Own session lifecycle, note-event capture, summaries, and review UI here. Freeze the selected scale and instrument when a session starts. Capture timestamped detected-note events rather than raw audio or every analysis frame. Use the storage adapter for persistence, and preserve repeated notes separated by silence.
+`SessionCapture` in `domain/practice` segments stabilized readings using their monotonic frame timestamps. It freezes the selected scale and instrument, groups held notes, and preserves repeats separated by silence. `useLiveNote` publishes every reading and lifecycle change so stopping or losing the microphone also ends capture. Browser storage checkpoints notes, not raw audio; reload restores unfinished captures as interrupted reviews.
 
 See [stage 3](../../../docs/implementation-plan.md#stage-3--capture-and-review-practice-sequences).

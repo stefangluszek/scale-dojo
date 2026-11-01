@@ -57,7 +57,15 @@ function meterLevel(rms: number): number {
  * reading. Owns the listening lifecycle, including permission problems,
  * device loss, hidden pages and unmount cleanup.
  */
-export function useLiveNote(): LiveListening {
+export function useLiveNote(
+  observers: {
+    onReading?: (reading: LiveReading, time: number) => void;
+    onReady?: () => void;
+    onStop?: (interrupted: boolean) => void;
+  } = {},
+): LiveListening {
+  const observer = useRef(observers);
+  observer.current = observers;
   const input = useRef<MicrophoneInput | null>(null);
   const stabilizer = useRef<NoteStabilizer | null>(null);
   const active = useRef(false);
@@ -69,12 +77,13 @@ export function useLiveNote(): LiveListening {
   const [paused, setPaused] = useState(false);
   const [processing, setProcessing] = useState<readonly VoiceProcessing[]>([]);
 
-  const settle = useCallback(() => {
+  const settle = useCallback((interrupted = false) => {
     active.current = false;
     stabilizer.current?.reset();
     setStatus('idle');
     setReading(SILENT);
     setLevel(0);
+    observer.current.onStop?.(interrupted);
   }, []);
 
   const stop = useCallback(() => {
@@ -83,12 +92,14 @@ export function useLiveNote(): LiveListening {
   }, [settle]);
 
   const onFrame = useCallback(({ time, samples, sampleRate }: AudioFrame) => {
+    if (!active.current) return;
     const rms = rootMeanSquare(samples);
     const notes = stabilizer.current!;
     // Skip the detector on silence; the stabilizer would discard it anyway.
     const estimate =
       rms >= notes.silenceLevel ? detectPitch(samples, sampleRate) : null;
     const next = notes.push({ time, level: rms, estimate });
+    observer.current.onReading?.(next, time);
     setReading((current) => (sameReading(current, next) ? current : next));
     setLevel(meterLevel(rms));
     setGate(meterLevel(notes.silenceLevel));
@@ -97,17 +108,25 @@ export function useLiveNote(): LiveListening {
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.hidden && active.current) {
-        stop();
+        input.current?.stop();
+        settle(true);
         setPaused(true);
       }
     };
     document.addEventListener('visibilitychange', onVisibilityChange);
+    const onPageHide = () => {
+      input.current?.stop();
+      settle(true);
+    };
+    window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
       active.current = false;
       input.current?.stop();
+      observer.current.onStop?.(true);
     };
-  }, [stop]);
+  }, [settle]);
 
   const start = () => {
     active.current = true;
@@ -123,7 +142,7 @@ export function useLiveNote(): LiveListening {
       .start({
         onFrame,
         onEnded: () => {
-          settle();
+          settle(true);
           setProblem('device-lost');
         },
       })
@@ -132,6 +151,7 @@ export function useLiveNote(): LiveListening {
           // Null means Stop came first.
           if (!details) return;
           setProcessing(details.processing);
+          observer.current.onReady?.();
           setStatus('listening');
         },
         (cause: unknown) => {
