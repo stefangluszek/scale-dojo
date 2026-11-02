@@ -47,9 +47,7 @@ export function SessionPanel({
       aria-labelledby="sessions-heading"
     >
       <div className="session-heading">
-        <h2 id="sessions-heading" tabIndex={-1}>
-          Practice sessions
-        </h2>
+        <h2 id="sessions-heading">Practice sessions</h2>
         {!minimal && (
           <p className="notation-note">
             Each time you listen, the notes you play are saved as a session to

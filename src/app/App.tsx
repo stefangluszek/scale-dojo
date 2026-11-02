@@ -1,4 +1,3 @@
-import { flushSync } from 'react-dom';
 import { positionsOfNote, STANDARD_BASS } from '../domain/instruments/fretted';
 import { scalePlaybackNotes } from '../domain/music/playback';
 import {
@@ -90,15 +89,6 @@ export function App() {
           </a>
           <div className="header-actions">
             {!zen && <span className="preview-badge">Early preview</span>}
-            <button
-              className="sessions-link"
-              onClick={() => {
-                flushSync(() => setView('full'));
-                document.getElementById('sessions-heading')?.focus();
-              }}
-            >
-              Sessions
-            </button>
             <button
               type="button"
               className="view-toggle"
