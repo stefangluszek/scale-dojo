@@ -1,41 +1,42 @@
 # Contributing
 
-Use Node.js 24.15+ (24.x) and npm. Start with the [README](README.md), [architecture](docs/architecture.md), and the current stage in the [implementation plan](docs/implementation-plan.md).
+Use Node.js 24.15+ (24.x) and npm (`nvm use` reads `.nvmrc`).
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Keep changes focused on a stage or a clearly defined fix. Music and instrument rules belong in the pure domain; React components present those rules. Browser microphone and storage integrations belong in `src/platform/`; pitch analysis belongs in `src/domain/pitch/`. Request microphone access only from a user action, never during app startup.
+Open the Vite URL under `/scale-dojo/`. See the [architecture](docs/architecture.md) for code boundaries and the [implementation plan](docs/implementation-plan.md) for current priorities.
 
 ## Checks
 
 ```sh
-npm run test:watch
-npm run format
-npm run check
+npm run test:watch    # Tests while developing
+npm run format       # Apply formatting
+npm run check        # Formatting, coverage, type checking, production build
 npx playwright install chromium
-npm run test:browser
-npm run bench:pitch
+npm run test:browser  # Build and test desktop/mobile Chromium
+npm run bench:pitch   # Compare pitch detectors; run after detector changes
 ```
 
-`npm run check` checks formatting, runs tests with coverage, type-checks, and builds. `npm run test:browser` builds and runs the desktop/mobile smoke suite. Coverage has an 85% minimum for lines, statements, functions, and branches. Add tests for meaningful behavior and edge cases; avoid tests that merely repeat implementation details or snapshot large screens.
+On Linux CI, install the browser with `npx playwright install --with-deps chromium`. To use an installed browser, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium` for the browser-test command.
 
-- Test music rules with known examples and boundary cases.
-- Test UI through accessible controls and visible outcomes using Testing Library.
-- Keep tests beside the code they exercise; shared setup lives in `src/test/`.
-- Keep production browser smoke tests in `tests/browser/`; they cover desktop and mobile Chromium emulation under `/scale-dojo/`. Install Chromium with `npx playwright install --with-deps chromium` on Linux CI.
-- Inspect desktop/mobile screenshots in `test-results/` after UI changes. Browser tests observe real output nodes and sample their audio signal; this does not validate physical speakers or microphone input.
-- Build audio test signals with `src/test/audioFixtures.ts`, which is seeded and deterministic. Rerun `npm run bench:pitch` after changing the pitch detector and update the stage 2 results.
-- Distinguish mocked/synthetic audio checks from real microphone validation in change notes.
+- Test behavior and edge cases, with tests beside the code. Use accessible controls and visible results for UI tests.
+- Keep music, instrument, pitch, and session rules in `src/domain/`; browser audio and storage belong in `src/platform/`. Request microphone access only from a user action.
+- For UI changes, check desktop and narrow mobile layouts and inspect screenshots in `test-results/`. Browser reports and failure traces are in `playwright-report/` and `test-results/`.
+- Use seeded signals from `src/test/audioFixtures.ts` for audio tests. Update [testing notes](docs/testing.md) after detector benchmarks or real-device checks; distinguish synthetic results from physical-device results.
 
-Use the checked-in lockfile. Commit dependency updates together with `package-lock.json`; keep generated `dist/`, `coverage/`, and `node_modules/` out of version control.
+Coverage requires 85% for lines, statements, functions, and branches. Build output goes to `dist/`, coverage to `coverage/`. Browser tests start a production preview on port 4173. `npm run preview` serves an existing build manually.
 
-## Review notes
+Commit dependency changes with `package-lock.json`; leave generated files out of version control. PRs should explain the outcome, checks, and relevant limitations. Keep docs accurate when behavior changes. No project license has been selected.
 
-Describe the user-visible outcome, the checks performed, and any relevant limits. Update the implementation plan when a stage is completed, and keep README feature claims accurate. UI changes should be checked at desktop and narrow mobile sizes once browser coverage is introduced.
+## Deployment
 
-GitHub Pages deployment runs automatically when CI succeeds for a push to `main`, and can be rerun manually from the Actions tab. Pull requests and pushes to other branches run checks and do not publish the site. Anything merged into `main` goes live once CI passes. Preserve the `/scale-dojo/` base path unless the hosting location changes.
+The app is hosted at [stefangluszek.github.io/scale-dojo](https://stefangluszek.github.io/scale-dojo/).
 
-The repository does not yet declare a project license; do not assume a licensing choice when adding source or assets.
+1. In repository **Settings → Pages**, set the source to **GitHub Actions** (one-time setup).
+2. Merge to `main`. CI runs the checks and browser tests.
+3. After successful CI, **Deploy GitHub Pages** checks out the tested commit, reruns `npm run check`, and publishes `dist/`. Failed or cancelled CI does not deploy.
+
+To redeploy, run **Deploy GitHub Pages → Run workflow** on `main` in the Actions tab. PRs and other branches do not publish. Keep Vite's `/scale-dojo/` base path unless the repository name or hosting location changes. See [Vite's Pages guide](https://vite.dev/guide/static-deploy#github-pages).

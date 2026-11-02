@@ -1,7 +1,7 @@
-# Instrument visualizations
+# Instrument views
 
-`BassFretboard.tsx` implements the stage 1 four-string bass view, open through fret 12. It receives shared selection, active absolute pitch, and a note-play callback from app composition. Additional instruments remain stage 4 work.
+`BassFretboard.tsx` renders standard four-string bass from open strings through fret 12. It takes selection, playing/heard pitches, and a playback callback from the app; note mapping and scale membership come from the shared domain.
 
-Render positions using the shared instrument and music domain. Keep scale membership out of rendering calculations. Distinguish root notes with more than color, provide accessible labels, and make orientation and tuning clear. A detected pitch may match several positions; do not claim the microphone identifies a specific string or fret.
+Keep roots identifiable without color, label note buttons, and show orientation and tuning. A heard pitch can match several positions; mark all candidates without claiming a string or fret.
 
-See [stage 1](../../../docs/implementation-plan.md#stage-1--bass-scale-explorer) and [stage 4](../../../docs/implementation-plan.md#stage-4--additional-instruments-and-tunings).
+Additional instruments are [unscheduled future ideas](../../../docs/future-improvements.md#additional-instruments-and-tunings--much-later).

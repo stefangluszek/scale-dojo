@@ -1,10 +1,8 @@
-# Browser audio boundary
+# Browser audio
 
-Two independent responsibilities, each with its own `AudioContext`:
+Each adapter owns a separate `AudioContext`:
 
-- `NotePlayer.ts` is stage 1 synthesized output. It lazily creates/resumes Web Audio on user activation, schedules triangle tones with gain envelopes, replaces/cancels playback, disconnects voices on Stop or completion, and closes its context on teardown. Pending startup is invalidated on Stop. Frequency conversion comes from the pure music domain.
-- `MicrophoneInput.ts` is stage 2 acquisition. Call `start()` from a user action: it creates and resumes its context before requesting the microphone, asks for echo cancellation, noise suppression, and automatic gain control off, and reports any the browser kept on. It delivers the newest analysis window every 40 ms from an `AnalyserNode` that isn't connected to the speakers. Failures become `MicrophoneError`s with a `problem` (`unsupported`, `insecure`, `denied`, `no-input`, `busy`, `failed`), and a track that ends on its own calls `onEnded`. `stop()` releases the tracks, nodes, timer, and context, and cancels a pending permission request.
+- `NotePlayer.ts` creates/resumes output on user activation, schedules triangle tones, and handles replacement/cancellation. Stop invalidates pending startup; voices disconnect after use and the context closes on teardown.
+- `MicrophoneInput.ts` requests input from a user action, asks for voice processing off, and delivers analyser windows every 40 ms. `MicrophoneError.problem` identifies unsupported/insecure contexts, denied permission, missing/busy input, or other failure. `onEnded` reports device loss. Stop releases tracks, nodes, timer, and context; a late permission grant releases its stream.
 
-Pitch estimation lives in `src/domain/pitch/` and runs on the delivered windows, so it is testable without a microphone. Nothing here records, stores, or sends audio.
-
-See [architecture](../../../docs/architecture.md) and [stage 2](../../../docs/implementation-plan.md#stage-2--microphone-input-and-live-note-feedback).
+Pitch analysis belongs in `src/domain/pitch/`. These adapters do not store or send audio. See the [architecture](../../../docs/architecture.md#microphone-pipeline).
