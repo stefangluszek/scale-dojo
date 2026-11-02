@@ -27,7 +27,7 @@ Microphone access requires HTTPS or localhost. Permission, device, and browser e
 
 ## Review a session
 
-Every listening run becomes a session once the microphone is ready. **Stop listening** ends it; runs without detected notes are discarded. Open **Sessions** from either view to see note timings, durations, scale membership, and a summary. History remains browsable while listening. **Clear session** asks before deleting the selected session.
+Every listening run becomes a session once the microphone is ready. **Stop listening** ends it; runs without detected notes are discarded. Review **Practice sessions** below the fretboard on the full page to see note timings, durations, scale membership, and a summary. From zen mode, press **?** or the **?** header button to open the full page. History remains browsable while listening. **Clear session** asks before deleting the selected session.
 
 A session keeps the scale and tuning selected when capture began. Changing the current scale updates live feedback but leaves that session's classification unchanged. Held notes form one event; repeats separated by silence form separate events. The in-scale percentage counts note events, not time spent playing. Timings include the detector's confirmation and release delay.
 

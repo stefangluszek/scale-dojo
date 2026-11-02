@@ -104,10 +104,7 @@ describe('practice sessions', () => {
     expect(
       screen.queryByRole('region', { name: 'Practice sessions' }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Sessions' }));
-    expect(
-      panel().getByRole('heading', { name: 'Practice sessions' }),
-    ).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Show full page' }));
     expect(panel().getByRole('status')).toHaveTextContent(
       'Recording C major pentatonic · 0 notes',
     );

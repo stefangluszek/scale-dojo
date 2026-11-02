@@ -285,11 +285,8 @@ test('saves each listen as a session to review, preserving its scale and the lat
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('./');
-  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('button', { name: 'Show full page' }).click();
   const sessions = page.getByRole('region', { name: 'Practice sessions' });
-  await expect(
-    sessions.getByRole('heading', { name: 'Practice sessions' }),
-  ).toBeFocused();
   await expect(sessions.getByRole('status')).toContainText('No sessions yet');
   // Listening is the only control; each listen is captured as a session.
   await page.getByRole('button', { name: 'Start listening' }).click();
@@ -376,7 +373,7 @@ test('recovers an interrupted capture after reloading without reopening the micr
   page,
 }) => {
   await page.goto('./');
-  await page.getByRole('button', { name: 'Sessions', exact: true }).click();
+  await page.getByRole('button', { name: 'Show full page' }).click();
   const sessions = page.getByRole('region', { name: 'Practice sessions' });
   await page.getByRole('button', { name: 'Start listening' }).click();
   await expect(

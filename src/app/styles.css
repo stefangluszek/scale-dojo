@@ -1318,7 +1318,6 @@ button:disabled {
 }
 
 /* Captured practice: readable note spans and local history. */
-.sessions-link,
 .session-secondary,
 .session-clear button,
 .storage-warning button {
@@ -1328,9 +1327,6 @@ button:disabled {
   border-radius: 8px;
   background: #fffef9;
   color: #203d32;
-}
-.sessions-link {
-  font-size: 13px;
 }
 .sessions {
   padding: 28px 32px;
