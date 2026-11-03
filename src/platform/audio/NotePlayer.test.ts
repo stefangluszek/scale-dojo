@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotePlayer } from './NotePlayer';
+import { NotePlayer, volumeToGain } from './NotePlayer';
 
 function audioFixture() {
   const oscillators: {
@@ -13,6 +13,8 @@ function audioFixture() {
   }[] = [];
   const gains: {
     gain: {
+      value: number;
+      setTargetAtTime: ReturnType<typeof vi.fn>;
       setValueAtTime: ReturnType<typeof vi.fn>;
       linearRampToValueAtTime: ReturnType<typeof vi.fn>;
       exponentialRampToValueAtTime: ReturnType<typeof vi.fn>;
@@ -42,6 +44,8 @@ function audioFixture() {
     createGain: vi.fn(() => {
       const gain = {
         gain: {
+          value: 1,
+          setTargetAtTime: vi.fn(),
           setValueAtTime: vi.fn(),
           linearRampToValueAtTime: vi.fn(),
           exponentialRampToValueAtTime: vi.fn(),
@@ -84,19 +88,65 @@ describe('Web Audio note player', () => {
       10.52,
     );
     expect(oscillators[0]!.start).toHaveBeenCalledWith(10.02);
-    expect(gains[0]!.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
+    expect(gains[1]!.gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(
       0,
       10.445,
     );
     await vi.advanceTimersByTimeAsync(520);
     expect(note.mock.calls).toEqual([[69], [81]]);
     oscillators[0]!.onended!();
-    expect(gains[0]!.disconnect).toHaveBeenCalledOnce();
+    expect(gains[1]!.disconnect).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(500);
     expect(complete).toHaveBeenCalledOnce();
     expect(oscillators[1]!.disconnect).toHaveBeenCalled();
     player.dispose();
     expect(context.close).toHaveBeenCalledOnce();
+  });
+
+  it('routes every note through one output whose volume changes live', async () => {
+    const { context, constructor, gains } = audioFixture();
+    const player = new NotePlayer();
+    player.setVolume(60);
+    expect(constructor).not.toHaveBeenCalled();
+    await player.play([69, 81], 120, vi.fn(), vi.fn());
+    const [output, ...voices] = gains;
+    expect(output!.gain.value).toBeCloseTo(0.36);
+    expect(output!.connect).toHaveBeenCalledWith(context.destination);
+    expect(voices).toHaveLength(2);
+    for (const voice of voices) {
+      expect(voice.connect).toHaveBeenCalledWith(output);
+      expect(voice.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+        0.9,
+        expect.closeTo(voice === voices[0] ? 10.035 : 10.535),
+      );
+    }
+    context.currentTime = 10.3;
+    player.setVolume(100);
+    expect(output!.gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      1,
+      10.3,
+      expect.any(Number),
+    );
+    player.setVolume(0);
+    expect(output!.gain.setTargetAtTime).toHaveBeenLastCalledWith(
+      0,
+      10.3,
+      expect.any(Number),
+    );
+    await player.play([69], 120, vi.fn(), vi.fn());
+    expect(gains).toHaveLength(4);
+    expect(gains[3]!.connect).toHaveBeenCalledWith(output);
+    player.dispose();
+    player.setVolume(40);
+    expect(output!.gain.setTargetAtTime).toHaveBeenCalledTimes(2);
+  });
+
+  it('maps volume on a squared curve and rejects values outside 0–100%', () => {
+    expect([0, 25, 50, 100].map(volumeToGain)).toEqual([0, 0.0625, 0.25, 1]);
+    for (const volume of [-1, 101, Number.NaN]) {
+      expect(() => volumeToGain(volume)).toThrow(RangeError);
+      expect(() => new NotePlayer().setVolume(volume)).toThrow(RangeError);
+    }
   });
 
   it('cancels queued notes and callbacks on Stop and replaces playback without overlap', async () => {

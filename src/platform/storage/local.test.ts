@@ -25,6 +25,7 @@ describe('versioned browser storage', () => {
       root: 9,
       scaleId: 'natural-minor',
       tempo: 120,
+      volume: 35,
       view: 'full',
     } as const;
     expect(writeStored(SETTINGS_KEY, settings)).toBeNull();
@@ -50,6 +51,15 @@ describe('versioned browser storage', () => {
     expect(localStorage.getItem(SETTINGS_KEY)).toBe(raw);
   });
 
+  it('reads settings saved before volume existed', () => {
+    const { volume: _volume, ...saved } = DEFAULT_SETTINGS;
+    writeStored(SETTINGS_KEY, saved);
+    expect(readStored(SETTINGS_KEY, isSettings, DEFAULT_SETTINGS)).toEqual({
+      value: saved,
+      problem: null,
+    });
+  });
+
   it('survives blocked storage and quota failures', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError');
@@ -69,6 +79,9 @@ describe('versioned browser storage', () => {
       { scaleId: 'unknown' },
       { tempo: 0 },
       { tempo: 500 },
+      { volume: -5 },
+      { volume: 101 },
+      { volume: 50.5 },
       { view: 'unknown' },
     ]) {
       expect(isSettings({ ...DEFAULT_SETTINGS, ...change })).toBe(false);

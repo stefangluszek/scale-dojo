@@ -38,7 +38,7 @@ Roots and scale membership use text and shape as well as color. Note buttons hav
 
 `domain/music/playback.ts` builds one octave from the first root at or above E1, including the upper root. Descending playback reverses it. Circle notes use that playback octave; frets play their mapped pitch.
 
-`NotePlayer` creates/resumes its `AudioContext` on user activation. Triangle oscillators and gain envelopes are scheduled against the audio clock at 40–240 BPM; UI timers only update highlights. New playback replaces the old sequence. Stop, selection/tempo changes, page hiding, and teardown cancel playback, including pending startup. Voices are disconnected after use; the context is reused until teardown. Audio failures leave the visual explorer usable.
+`NotePlayer` creates/resumes its `AudioContext` on user activation. Triangle oscillators and gain envelopes are scheduled against the audio clock at 40–240 BPM and feed one output gain set by the volume preference (squared, so slider steps sound even), which can change mid-note; UI timers only update highlights. New playback replaces the old sequence. Stop, selection/tempo changes, page hiding, and teardown cancel playback, including pending startup. Voices are disconnected after use; the context is reused until teardown. Audio failures leave the visual explorer usable.
 
 The independent `Metronome` adapter queues short clicks 100 ms ahead using the audio clock, with a 25 ms scheduler timer. Live tempo edits adjust the next beat; a stalled timer skips missed beats. `useMetronome` stops clicks on page hiding, page exit, or unmount, and invalidates pending startup. Its controls share the saved 40–240 BPM tempo with scale playback, in both views.
 
@@ -60,7 +60,7 @@ Stop, device loss, page hiding, and unmount end listening. Live membership follo
 
 ## State and persistence
 
-`useStoredState` validates version-1 envelopes for `scale-dojo.settings` and `scale-dojo.sessions`. Settings save root, scale, tempo, and view immediately. Unreadable data is not overwritten on mount; failed saves preserve in-memory state and offer retry. Clearing a session leaves preferences intact.
+`useStoredState` validates version-1 envelopes for `scale-dojo.settings` and `scale-dojo.sessions`. Settings save root, scale, tempo, volume, and view immediately; settings saved before volume existed load with the default volume. Unreadable data is not overwritten on mount; failed saves preserve in-memory state and offer retry. Clearing a session leaves preferences intact.
 
 `SessionCapture` groups stabilized readings into timed notes. Cents changes keep the same event; a different pitch, silence, or unclear sound ends it. Event timing uses a monotonic clock, while a wall-clock timestamp labels history. Root, scale, and instrument/tuning are copied when the microphone becomes ready and remain fixed for that session.
 

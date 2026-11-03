@@ -13,7 +13,7 @@ The first visit opens in zen mode with C major pentatonic at 90 BPM. Tap the sca
 - In zen mode, **Space** plays the scale ascending at the saved tempo (90 BPM initially), and pressing it again stops playback. Space takes priority over a focused button there; press Enter to activate the button instead.
 - In zen mode, **↑** and **↓** move the root up or down a semitone, and **←** and **→** step through the scales (major pentatonic, minor pentatonic, major, natural minor), wrapping around at either end. In the full view, Space and the arrow keys scroll the page as usual.
 
-The full view adds ascending/descending playback at 40–240 BPM. Playback starts at the lowest root at or above E1 and includes the upper root. Changing root, scale, or tempo stops it, as does hiding the page. Tones are synthesized, not recorded bass samples.
+The full view adds ascending/descending playback at 40–240 BPM and a **Volume** slider (0–100%, default 80%). Volume applies to every played note, in zen mode too, but not to metronome clicks; changes take effect while notes play. Playback starts at the lowest root at or above E1 and includes the upper root. Changing root, scale, or tempo stops it, as does hiding the page. Tones are synthesized, not recorded bass samples. Laptop and phone speakers barely reproduce the lowest bass notes, so they sound quieter than higher ones; headphones or external speakers help.
 
 Solid rings mark playback; dashed rings mark a note heard through the microphone. The circle highlights a note in any octave; the fretboard highlights its exact pitch. Shortcuts are ignored in text fields and dropdowns, with Ctrl/Alt/Cmd, and on key repeat. Arrow keys are also left to the picker's radio buttons and to the fretboard when it has focus, so it can scroll.
 
@@ -39,7 +39,7 @@ Every listening run becomes a session once the microphone is ready. **Stop liste
 
 A session keeps the scale and tuning selected when capture began. Changing the current scale updates live feedback but leaves that session's classification unchanged. Held notes form one event; repeats separated by silence form separate events. The in-scale percentage counts note events, not time spent playing. Timings include the detector's confirmation and release delay.
 
-Sessions and root, scale, tempo, and view preferences stay in this browser on this device. Clearing site data removes them. Listening never resumes automatically.
+Sessions and root, scale, tempo, volume, and view preferences stay in this browser on this device. Clearing site data removes them. Listening never resumes automatically.
 
 Sessions save at note boundaries and once per second. After a crash, the last checkpoint is restored as interrupted; up to the latest second may be missing. Storage errors offer retry/reset controls and keep the current review available in memory. Unreadable saved data is left untouched until you choose to reset it or save new data.
 

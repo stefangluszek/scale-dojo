@@ -677,10 +677,12 @@ button:disabled {
   font-size: 16px;
   font-weight: 600;
 }
-.tempo-control {
+.playback-sliders {
+  display: grid;
+  gap: 10px;
   align-self: center;
 }
-.tempo-control input {
+.slider-control input {
   width: 100%;
   min-height: 28px;
   margin: 0;
@@ -1335,7 +1337,7 @@ button:disabled {
   .playback {
     grid-template-columns: minmax(0, 1fr);
   }
-  .tempo-control {
+  .playback-sliders {
     max-width: 300px;
   }
   .scale-controls {
