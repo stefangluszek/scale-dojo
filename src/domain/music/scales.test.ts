@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  cycleScale,
   getScaleNotes,
   getScaleSteps,
   isNoteInScale,
@@ -170,5 +171,31 @@ describe('scale shape', () => {
   it('rejects an unknown scale when measuring steps or quality', () => {
     expect(() => getScaleSteps('unknown' as ScaleId)).toThrow('Unknown scale');
     expect(() => scaleQuality('unknown' as ScaleId)).toThrow('Unknown scale');
+  });
+});
+
+describe('cycling scales', () => {
+  it('steps through the scale list in order and wraps at either end', () => {
+    expect(cycleScale('major-pentatonic', 1)).toBe('minor-pentatonic');
+    expect(cycleScale('minor-pentatonic', 1)).toBe('major');
+    expect(cycleScale('major', 1)).toBe('natural-minor');
+    expect(cycleScale('natural-minor', 1)).toBe('major-pentatonic');
+    expect(cycleScale('major-pentatonic', -1)).toBe('natural-minor');
+    expect(cycleScale('major', 0)).toBe('major');
+    expect(cycleScale('major', SCALE_DEFINITIONS.length * 3 + 1)).toBe(
+      'natural-minor',
+    );
+    expect(cycleScale('major', -SCALE_DEFINITIONS.length * 2 - 2)).toBe(
+      'major-pentatonic',
+    );
+  });
+
+  it.each([0.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects a non-integer step %s',
+    (steps) => expect(() => cycleScale('major', steps)).toThrow(RangeError),
+  );
+
+  it('rejects an unknown scale', () => {
+    expect(() => cycleScale('unknown' as ScaleId, 1)).toThrow('Unknown scale');
   });
 });

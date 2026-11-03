@@ -87,3 +87,105 @@ describe('number key shortcuts', () => {
     expect(played(play)).toEqual([[36, 90]]);
   });
 });
+
+describe('arrow key shortcuts in zen mode', () => {
+  const heading = (name: string) =>
+    expect(screen.getByRole('heading', { name })).toBeInTheDocument();
+
+  it('move the root a semitone with up and down, wrapping at the octave', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard('{ArrowUp}');
+    heading('C# major pentatonic');
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    heading('B major pentatonic');
+    await user.keyboard('{ArrowUp}{ArrowUp}{ArrowUp}');
+    heading('D major pentatonic');
+    // The fretboard follows the new root.
+    expect(
+      screen.getByRole('button', {
+        name: 'A1 string, fret 5, D2, root. Play note',
+      }),
+    ).toHaveTextContent('R');
+  });
+
+  it('cycle the scales with left and right, wrapping at either end', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    await user.keyboard('{ArrowRight}');
+    heading('C minor pentatonic');
+    expect(container.querySelector('.practice-space')).toHaveAttribute(
+      'data-quality',
+      'minor',
+    );
+    await user.keyboard('{ArrowRight}');
+    heading('C major');
+    await user.keyboard('{ArrowRight}');
+    heading('C natural minor');
+    await user.keyboard('{ArrowRight}');
+    heading('C major pentatonic');
+    await user.keyboard('{ArrowLeft}');
+    heading('C natural minor');
+  });
+
+  it('stop playback, keep the choice, and retarget the number keys', async () => {
+    const play = mockPlayer();
+    const stop = vi.spyOn(NotePlayer.prototype, 'stop');
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    await user.keyboard('1');
+    stop.mockClear();
+    await user.keyboard('{ArrowUp}{ArrowRight}');
+    expect(stop).toHaveBeenCalled();
+    heading('C# minor pentatonic');
+    // C#2, then E2: the minor third of C# minor pentatonic.
+    await user.keyboard('12');
+    expect(played(play)).toEqual([
+      [36, 90],
+      [37, 90],
+      [40, 90],
+    ]);
+
+    unmount();
+    render(<App />);
+    heading('C# minor pentatonic');
+  });
+
+  it('are left to the full page, the picker radios, the fretboard and modifiers', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Arrows move the picker's radio group natively.
+    await user.click(
+      screen.getByRole('button', { name: 'C major pentatonic' }),
+    );
+    expect(screen.getByRole('radio', { name: 'C' })).toHaveFocus();
+    await user.keyboard('{ArrowRight}');
+    heading('C# major pentatonic');
+    await user.keyboard('{Escape}');
+
+    // The focused fretboard scrolls with the arrow keys.
+    act(() =>
+      screen.getByRole('region', { name: 'Scrollable bass fretboard' }).focus(),
+    );
+    await user.keyboard('{ArrowLeft}{ArrowUp}');
+    heading('C# major pentatonic');
+    act(() =>
+      screen.getByRole('region', { name: 'Scrollable bass fretboard' }).blur(),
+    );
+
+    // Alt+Left is the browser's Back.
+    fireEvent.keyDown(document.body, { key: 'ArrowLeft', altKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowUp', metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowUp', repeat: true });
+    heading('C# major pentatonic');
+
+    // The full page has root and scale controls, and arrows scroll it.
+    await user.keyboard('?');
+    await user.keyboard('{ArrowUp}{ArrowRight}');
+    heading('C# major pentatonic');
+    expect(screen.getByRole('combobox', { name: 'Root note' })).toHaveValue(
+      '1',
+    );
+  });
+});

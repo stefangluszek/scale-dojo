@@ -112,6 +112,19 @@ export function scaleQuality(scaleId: ScaleId): ScaleQuality {
   return getScaleDefinition(scaleId).quality;
 }
 
+/**
+ * The scale a number of places away in the scale list, wrapping around at
+ * either end: one step past the last scale is the first.
+ */
+export function cycleScale(scaleId: ScaleId, steps: number): ScaleId {
+  if (!Number.isSafeInteger(steps)) {
+    throw new RangeError('Scale steps must be an integer.');
+  }
+  const index = SCALE_DEFINITIONS.indexOf(getScaleDefinition(scaleId));
+  const count = SCALE_DEFINITIONS.length;
+  return SCALE_DEFINITIONS[(((index + steps) % count) + count) % count]!.id;
+}
+
 /** Labels a distance from the root as a scale degree, e.g. 3 semitones → ♭3. */
 export function scaleDegreeLabel(semitones: number): string {
   return DEGREE_LABELS[normalizePitchClass(semitones)];
