@@ -10,12 +10,18 @@ The first visit opens in zen mode with C major pentatonic at 90 BPM. Tap the sca
 - The fretboard runs from open strings through fret 12, with G2 at the top and E1 at the bottom. Scroll it sideways on small screens.
 - Roots have an **R** and a square marker; other scale notes have a dot. Note names currently use sharps for accidentals.
 - Tap any note to hear it, including notes outside the scale. Number keys play scale notes in order: **1** is the root, and **6** (pentatonic) or **8** (seven-note scales) is the root an octave up.
-- In zen mode, **Space** plays the scale ascending at the saved tempo (90 BPM unless you change it in the full view), and pressing it again stops playback. Space takes priority over a focused button there; press Enter to activate the button instead.
+- In zen mode, **Space** plays the scale ascending at the saved tempo (90 BPM initially), and pressing it again stops playback. Space takes priority over a focused button there; press Enter to activate the button instead.
 - In zen mode, **↑** and **↓** move the root up or down a semitone, and **←** and **→** step through the scales (major pentatonic, minor pentatonic, major, natural minor), wrapping around at either end. In the full view, Space and the arrow keys scroll the page as usual.
 
 The full view adds ascending/descending playback at 40–240 BPM. Playback starts at the lowest root at or above E1 and includes the upper root. Changing root, scale, or tempo stops it, as does hiding the page. Tones are synthesized, not recorded bass samples.
 
 Solid rings mark playback; dashed rings mark a note heard through the microphone. The circle highlights a note in any octave; the fretboard highlights its exact pitch. Shortcuts are ignored in text fields and dropdowns, with Ctrl/Alt/Cmd, and on key repeat. Arrow keys are also left to the picker's radio buttons and to the fretboard when it has focus, so it can scroll.
+
+## Keep time with the metronome
+
+Press the small **Play** button beside **Start listening** to start the metronome; press it again to stop. Edit the **BPM** field to change tempo, including while it is playing. The range is 40–240 BPM, shared with scale playback and saved in this browser. Empty edits restore the previous tempo when you leave the field; out-of-range values are limited to this range.
+
+The metronome is available in both views and runs independently of microphone listening. Switching views keeps it running; hiding or leaving the page stops it. It never starts automatically when you return or reload.
 
 ## Listen to your bass
 

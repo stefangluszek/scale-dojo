@@ -36,7 +36,7 @@ export function ScalePlayback({
           type="range"
           min="40"
           max="240"
-          step="5"
+          step="1"
           value={tempo}
           aria-label="Tempo"
           aria-valuetext={`${tempo} beats per minute`}

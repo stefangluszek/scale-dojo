@@ -288,7 +288,7 @@ test('saves each listen as a session to review, preserving its scale and the lat
   await page.getByRole('button', { name: 'Show full page' }).click();
   const sessions = page.getByRole('region', { name: 'Practice sessions' });
   await expect(sessions.getByRole('status')).toContainText('No sessions yet');
-  // Listening is the only control; each listen is captured as a session.
+  // Each listening run is captured as a session.
   await page.getByRole('button', { name: 'Start listening' }).click();
   await expect(sessions.getByRole('status')).toContainText(
     'Recording C major pentatonic',
@@ -323,7 +323,7 @@ test('saves each listen as a session to review, preserving its scale and the lat
   await expect(
     page.getByRole('combobox', { name: 'Scale', exact: true }),
   ).toHaveValue('natural-minor');
-  await expect(page.getByRole('slider', { name: 'Tempo' })).toHaveValue('235');
+  await expect(page.getByRole('slider', { name: 'Tempo' })).toHaveValue('239');
   await expect(notes.getByRole('listitem')).toHaveCount(count);
   await expect(
     notes.getByRole('listitem').filter({ hasText: 'F1' }).first(),

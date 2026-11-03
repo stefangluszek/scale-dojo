@@ -8,6 +8,7 @@ import {
 } from '../../domain/music/scales';
 import { describeTuning, tuningDirection } from '../../domain/pitch/notes';
 import { spokenDegree } from '../scales/ScaleCircle';
+import { MetronomeControls } from './MetronomeControls';
 import type { ListenProblem, LiveListening } from './useLiveNote';
 
 const PROBLEM_MESSAGES: Record<ListenProblem, string> = {
@@ -30,6 +31,8 @@ interface ListenPanelProps {
   root: PitchClass;
   scaleId: ScaleId;
   listening: LiveListening;
+  tempo: number;
+  onTempoChange: (tempo: number) => void;
   /** Fretboard positions that match the heard pitch. */
   fretboardMatches: number;
 }
@@ -76,6 +79,8 @@ export function ListenPanel({
   root,
   scaleId,
   listening,
+  tempo,
+  onTempoChange,
   fretboardMatches,
 }: ListenPanelProps) {
   const { status, reading, level, gate, problem, paused, processing } =
@@ -118,23 +123,26 @@ export function ListenPanel({
         </div>
       )}
 
-      <button
-        type="button"
-        className="listen-toggle"
-        onClick={running ? listening.stop : listening.start}
-      >
-        {running ? (
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <rect x="4" y="4" width="8" height="8" rx="1.5" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5" />
-            <path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2.5" />
-          </svg>
-        )}
-        {running ? 'Stop listening' : 'Start listening'}
-      </button>
+      <div className="listen-controls">
+        <button
+          type="button"
+          className="listen-toggle"
+          onClick={running ? listening.stop : listening.start}
+        >
+          {running ? (
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect x="4" y="4" width="8" height="8" rx="1.5" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+              <rect x="5.5" y="1.5" width="5" height="8.5" rx="2.5" />
+              <path d="M3 7.5a5 5 0 0 0 10 0M8 12.5v2.5" />
+            </svg>
+          )}
+          {running ? 'Stop listening' : 'Start listening'}
+        </button>
+        <MetronomeControls tempo={tempo} onTempoChange={onTempoChange} />
+      </div>
 
       <div className="live-readout" data-active={running || undefined}>
         {/* Announces the note and its scale membership; tuning changes too
