@@ -236,6 +236,54 @@ test('zen arrow keys step the root and scale, but not on the fretboard or full p
   );
 });
 
+test('zen Space plays the scale at the saved tempo and stops it, even on a focused note', async ({
+  page,
+}) => {
+  await page.goto('./');
+  const notes = () => page.evaluate(() => window.audioProbe.notes);
+  const midi = (frequency: number) =>
+    Math.round(69 + 12 * Math.log2(frequency / 440));
+  const circleNote = (name: string) => page.getByRole('button', { name });
+
+  // Clicking a note focuses its button; Space must not press it again.
+  const third = circleNote('Play E2, scale degree 3');
+  await third.click();
+  await expect(third).toBeFocused();
+  await expect.poll(async () => (await notes()).length).toBe(1);
+  await expect(third).not.toHaveClass(/circle-playing/);
+
+  // Hold Space long enough to repeat, then release it.
+  await page.keyboard.down(' ');
+  await page.keyboard.down(' ');
+  await page.keyboard.up(' ');
+  await expect(circleNote('Play D2, scale degree 2')).toHaveClass(
+    /circle-playing/,
+  );
+  const run = (await notes()).slice(1);
+  expect(run.map((note) => midi(note.frequency))).toEqual([
+    36, 38, 40, 43, 45, 48,
+  ]);
+  // 90 BPM, one note per beat.
+  expect(run[1]!.time - run[0]!.time).toBeCloseTo(60 / 90, 5);
+  await expect(third).toBeFocused();
+
+  await page.keyboard.press(' ');
+  await expect(page.locator('.circle-playing')).toHaveCount(0);
+  const stopped = await notes();
+  expect(stopped).toHaveLength(7);
+  // Notes that had not sounded yet are cancelled.
+  expect(stopped.slice(-3).every((note) => note.stops.at(-1) === 0)).toBe(true);
+
+  // The full page keeps Space for scrolling.
+  await page.keyboard.press('?');
+  await third.blur();
+  await page.keyboard.press(' ');
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0);
+  expect(await notes()).toHaveLength(7);
+});
+
 test('production app keeps selectors, chips and accessible fretboard synchronized', async ({
   page,
 }, testInfo) => {

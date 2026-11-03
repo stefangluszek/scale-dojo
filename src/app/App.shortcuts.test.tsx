@@ -189,3 +189,87 @@ describe('arrow key shortcuts in zen mode', () => {
     );
   });
 });
+
+describe('space in zen mode', () => {
+  const rootNote = () => screen.getByRole('button', { name: 'Play C2, root' });
+
+  it('plays the scale ascending at the saved tempo, and stops it when pressed again', async () => {
+    const play = mockPlayer();
+    const stop = vi.spyOn(NotePlayer.prototype, 'stop');
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard(' ');
+    expect(played(play)).toEqual([[36, 38, 40, 43, 45, 48, 90]]);
+    expect(rootNote()).toHaveClass('circle-playing');
+
+    stop.mockClear();
+    await user.keyboard(' ');
+    expect(stop).toHaveBeenCalled();
+    expect(rootNote()).not.toHaveClass('circle-playing');
+
+    // The run follows the current scale and the tempo set on the full page.
+    await user.keyboard('?');
+    fireEvent.change(screen.getByRole('slider', { name: 'Tempo' }), {
+      target: { value: '120' },
+    });
+    await user.keyboard('?{ArrowRight} ');
+    expect(played(play)).toEqual([
+      [36, 38, 40, 43, 45, 48, 90],
+      [36, 39, 41, 43, 46, 48, 120],
+    ]);
+  });
+
+  it('takes priority over a focused button, and holding it plays once', async () => {
+    const play = vi
+      .spyOn(NotePlayer.prototype, 'play')
+      .mockImplementation(async (notes, _tempo, onNote, onComplete) => {
+        onNote(notes[0]!);
+        onComplete();
+      });
+    const user = userEvent.setup();
+    render(<App />);
+    const third = screen.getByRole('button', {
+      name: 'Play E2, scale degree 3',
+    });
+    await user.click(third);
+    expect(third).toHaveFocus();
+    // Held down, Space repeats; releasing it must not press the button.
+    await user.keyboard('[Space>4/]');
+    expect(played(play)).toEqual([
+      [40, 90],
+      [36, 38, 40, 43, 45, 48, 90],
+    ]);
+
+    // The press, its repeats and its release are all claimed.
+    expect(fireEvent.keyDown(third, { key: ' ' })).toBe(false);
+    expect(fireEvent.keyDown(third, { key: ' ', repeat: true })).toBe(false);
+    expect(fireEvent.keyUp(third, { key: ' ' })).toBe(false);
+    expect(fireEvent.keyUp(third, { key: ' ' })).toBe(true);
+    expect(fireEvent.keyDown(third, { key: 'x', repeat: true })).toBe(true);
+  });
+
+  it('is left to text fields, modifiers and the full page', async () => {
+    const play = mockPlayer();
+    const user = userEvent.setup();
+    render(<App />);
+
+    const field = document.createElement('input');
+    document.body.append(field);
+    act(() => field.focus());
+    await user.keyboard(' ');
+    expect(field).toHaveValue(' ');
+    field.remove();
+
+    expect(fireEvent.keyDown(document.body, { key: ' ', ctrlKey: true })).toBe(
+      true,
+    );
+    expect(fireEvent.keyDown(document.body, { key: ' ', repeat: true })).toBe(
+      true,
+    );
+
+    // Space scrolls the full page.
+    await user.keyboard('?');
+    expect(fireEvent.keyDown(document.body, { key: ' ' })).toBe(true);
+    expect(play).not.toHaveBeenCalled();
+  });
+});
