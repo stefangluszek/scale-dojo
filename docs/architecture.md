@@ -15,7 +15,7 @@ src/
   features/
     scales/             Scale circle, picker, playback controls
     instruments/        Accessible bass fretboard
-    practice/           Listening lifecycle and feedback
+    practice/           Listening, metronome controls, and feedback
     sessions/           Capture, history, review
   platform/
     audio/              Web Audio output and microphone acquisition
@@ -39,6 +39,8 @@ Roots and scale membership use text and shape as well as color. Note buttons hav
 `domain/music/playback.ts` builds one octave from the first root at or above E1, including the upper root. Descending playback reverses it. Circle notes use that playback octave; frets play their mapped pitch.
 
 `NotePlayer` creates/resumes its `AudioContext` on user activation. Triangle oscillators and gain envelopes are scheduled against the audio clock at 40–240 BPM; UI timers only update highlights. New playback replaces the old sequence. Stop, selection/tempo changes, page hiding, and teardown cancel playback, including pending startup. Voices are disconnected after use; the context is reused until teardown. Audio failures leave the visual explorer usable.
+
+The independent `Metronome` adapter queues short clicks 100 ms ahead using the audio clock, with a 25 ms scheduler timer. Live tempo edits adjust the next beat; a stalled timer skips missed beats. `useMetronome` stops clicks on page hiding, page exit, or unmount, and invalidates pending startup. Its controls share the saved 40–240 BPM tempo with scale playback, in both views.
 
 ## Microphone pipeline
 

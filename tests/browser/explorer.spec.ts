@@ -527,8 +527,86 @@ test('scale playback follows direction and tempo, and cancels on Stop and select
   await page.getByRole('button', { name: /Play ascending/ }).click();
   await tempo.focus();
   await page.keyboard.press('ArrowLeft');
-  await expect(tempo).toHaveValue('235');
+  await expect(tempo).toHaveValue('239');
   await expect(playbackStatus(page)).toHaveText('Ready to play');
+});
+
+test('metronome produces steady clicks, changes tempo live, and stops cleanly', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('./');
+  const tempo = page.getByRole('spinbutton', { name: 'Metronome tempo' });
+  const notes = () => page.evaluate(() => window.audioProbe.notes);
+  expect(await page.evaluate(() => window.audioProbe.contexts.length)).toBe(0);
+  await tempo.fill('120');
+  await tempo.press('Enter');
+  await page.getByRole('button', { name: 'Start metronome' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Stop metronome' }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(async () => (await notes()).length)
+    .toBeGreaterThanOrEqual(3);
+  const first = await notes();
+  expect(first[1]!.time - first[0]!.time).toBeCloseTo(0.5, 5);
+  expect(first[2]!.time - first[1]!.time).toBeCloseTo(0.5, 5);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const analyser = window.audioProbe.analysers[0]!;
+          const samples = new Float32Array(analyser.fftSize);
+          analyser.getFloatTimeDomainData(samples);
+          return Math.max(...samples.map(Math.abs));
+        }),
+      { intervals: [20] },
+    )
+    .toBeGreaterThan(0.01);
+
+  await tempo.fill('240');
+  await tempo.press('Enter');
+  const countBeforeEdit = first.length;
+  await expect
+    .poll(async () => (await notes()).length)
+    .toBeGreaterThanOrEqual(countBeforeEdit + 4);
+  const latest = (await notes()).slice(-2);
+  expect(latest[1]!.time - latest[0]!.time).toBeCloseTo(0.25, 5);
+  expect(await page.evaluate(() => window.audioProbe.contexts.length)).toBe(1);
+  expect(await page.evaluate(() => window.audioProbe.microphoneRequests)).toBe(
+    0,
+  );
+  await page.screenshot({ path: testInfo.outputPath('metronome-zen.png') });
+  await openFullPage(page);
+  await expect(
+    page.getByRole('button', { name: 'Stop metronome' }),
+  ).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Tempo' })).toHaveValue('240');
+  await page
+    .locator('.listen')
+    .screenshot({ path: testInfo.outputPath('metronome-full.png') });
+
+  await page.getByRole('button', { name: 'Stop metronome' }).click();
+  const stoppedCount = (await notes()).length;
+  await page.waitForTimeout(350);
+  expect(await notes()).toHaveLength(stoppedCount);
+  await page.reload();
+  await expect(tempo).toHaveValue('240');
+  await expect(
+    page.getByRole('button', { name: 'Start metronome' }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => window.audioProbe.contexts.length)).toBe(0);
+  await page.setViewportSize({ width: 320, height: 700 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page
+    .locator('.listen')
+    .screenshot({ path: testInfo.outputPath('metronome-narrow.png') });
+  expect(errors).toEqual([]);
 });
 
 test('audio unavailability leaves the visual explorer usable', async ({

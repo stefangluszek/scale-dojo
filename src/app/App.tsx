@@ -75,6 +75,11 @@ export function App() {
     playback.stop();
     setScaleId(value);
   };
+  const changeTempo = (value: number) => {
+    if (value === tempo) return;
+    playback.stop();
+    setTempo(value);
+  };
 
   useKeyboardShortcuts({
     [VIEW_TOGGLE_KEY]: toggleView,
@@ -186,10 +191,7 @@ export function App() {
                 isPlaying={playback.isPlaying}
                 activeNote={playback.activeNote}
                 error={playback.error}
-                onTempoChange={(value) => {
-                  playback.stop();
-                  setTempo(value);
-                }}
+                onTempoChange={changeTempo}
                 onPlay={(sequence) => {
                   void playback.play(sequence, tempo);
                 }}
@@ -201,6 +203,8 @@ export function App() {
               root={root}
               scaleId={scaleId}
               listening={listening}
+              tempo={tempo}
+              onTempoChange={changeTempo}
               fretboardMatches={
                 heardNote === null
                   ? 0

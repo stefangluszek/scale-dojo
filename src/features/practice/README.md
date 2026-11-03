@@ -4,4 +4,6 @@
 
 `ListenPanel` shows controls, note/octave, scale membership, tuning, and input problems; its `minimal` prop serves zen mode. Silence and unclear sound are never wrong notes. Live membership follows current selection; sessions keep their own starting context.
 
+`MetronomeControls` sits beside the listening button in both views. It edits the shared saved tempo, while `useMetronome` owns independent click playback and stops on page hiding, page exit, or unmount.
+
 See the [pipeline](../../../docs/architecture.md#microphone-pipeline) and [testing notes](../../../docs/testing.md).
