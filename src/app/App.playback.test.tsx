@@ -199,6 +199,26 @@ describe('bass explorer and playback integration', () => {
     expect(dispose).toHaveBeenCalledOnce();
   });
 
+  it('plays at the saved volume and changes it live without stopping playback', async () => {
+    vi.spyOn(NotePlayer.prototype, 'play').mockResolvedValue(undefined);
+    const setVolume = vi.spyOn(NotePlayer.prototype, 'setVolume');
+    const user = userEvent.setup();
+    renderFullPage();
+    const volume = screen.getByRole('slider', { name: 'Volume' });
+    expect(volume).toHaveValue('80');
+    expect(volume).toHaveAttribute('aria-valuetext', '80 percent');
+    // Before anything has played there is no player to adjust.
+    fireEvent.change(volume, { target: { value: '60' } });
+    expect(setVolume).not.toHaveBeenCalled();
+    expect(screen.getByText('Volume · 60%')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Play ascending/ }));
+    expect(setVolume).toHaveBeenCalledExactlyOnceWith(60);
+    expect(playbackStatus()).toHaveTextContent('Playing');
+    fireEvent.change(volume, { target: { value: '100' } });
+    expect(setVolume).toHaveBeenLastCalledWith(100);
+    expect(playbackStatus()).toHaveTextContent('Playing');
+  });
+
   it('finishes naturally and reports recoverable audio errors without blocking scale exploration', async () => {
     const play = vi
       .spyOn(NotePlayer.prototype, 'play')

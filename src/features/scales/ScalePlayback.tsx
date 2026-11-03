@@ -3,10 +3,12 @@ import { midiNoteName } from '../../domain/music/playback';
 interface ScalePlaybackProps {
   notes: readonly number[];
   tempo: number;
+  volume: number;
   isPlaying: boolean;
   activeNote: number | null;
   error: string;
   onTempoChange: (tempo: number) => void;
+  onVolumeChange: (volume: number) => void;
   onPlay: (notes: readonly number[]) => void;
   onStop: () => void;
 }
@@ -14,10 +16,12 @@ interface ScalePlaybackProps {
 export function ScalePlayback({
   notes,
   tempo,
+  volume,
   isPlaying,
   activeNote,
   error,
   onTempoChange,
+  onVolumeChange,
   onPlay,
   onStop,
 }: ScalePlaybackProps) {
@@ -30,19 +34,34 @@ export function ScalePlayback({
           Synthesized tones, one note per beat.
         </p>
       </div>
-      <label className="tempo-control">
-        Tempo · {tempo} BPM
-        <input
-          type="range"
-          min="40"
-          max="240"
-          step="1"
-          value={tempo}
-          aria-label="Tempo"
-          aria-valuetext={`${tempo} beats per minute`}
-          onChange={(event) => onTempoChange(Number(event.target.value))}
-        />
-      </label>
+      <div className="playback-sliders">
+        <label className="slider-control">
+          Tempo · {tempo} BPM
+          <input
+            type="range"
+            min="40"
+            max="240"
+            step="1"
+            value={tempo}
+            aria-label="Tempo"
+            aria-valuetext={`${tempo} beats per minute`}
+            onChange={(event) => onTempoChange(Number(event.target.value))}
+          />
+        </label>
+        <label className="slider-control">
+          Volume · {volume}%
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={volume}
+            aria-label="Volume"
+            aria-valuetext={`${volume} percent`}
+            onChange={(event) => onVolumeChange(Number(event.target.value))}
+          />
+        </label>
+      </div>
       <div className="playback-buttons">
         <button type="button" onClick={() => onPlay(notes)}>
           ↑ Play ascending

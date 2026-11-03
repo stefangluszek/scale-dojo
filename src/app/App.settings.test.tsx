@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { writeStored } from '../platform/storage/local';
 import { SETTINGS_KEY } from '../platform/storage/settings';
 import { MicrophoneInput } from '../platform/audio/MicrophoneInput';
 import { renderFullPage } from '../test/renderApp';
@@ -9,7 +10,7 @@ import { App } from './App';
 afterEach(() => vi.restoreAllMocks());
 
 describe('saved preferences', () => {
-  it('restores root, scale, tempo and full-page view without opening the microphone', async () => {
+  it('restores root, scale, tempo, volume and full-page view without opening the microphone', async () => {
     const start = vi.spyOn(MicrophoneInput.prototype, 'start');
     const user = userEvent.setup();
     const app = renderFullPage();
@@ -21,6 +22,10 @@ describe('saved preferences', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Tempo' }), {
       target: { value: '140' },
     });
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveValue('80');
+    fireEvent.change(screen.getByRole('slider', { name: 'Volume' }), {
+      target: { value: '45' },
+    });
     app.unmount();
     render(<App />);
     expect(screen.getByLabelText('Root note')).toHaveValue('9');
@@ -28,10 +33,25 @@ describe('saved preferences', () => {
       'natural-minor',
     );
     expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveValue('140');
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveValue('45');
     expect(
       screen.getByRole('button', { name: 'Enter zen mode' }),
     ).toBeVisible();
     expect(start).not.toHaveBeenCalled();
+  });
+
+  it('keeps preferences saved before volume existed, at the default volume', () => {
+    writeStored(SETTINGS_KEY, {
+      root: 7,
+      scaleId: 'major',
+      tempo: 150,
+      view: 'full',
+    });
+    render(<App />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Root note')).toHaveValue('7');
+    expect(screen.getByRole('slider', { name: 'Tempo' })).toHaveValue('150');
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveValue('80');
   });
 
   it('saves changes from the circle picker and restores zen mode', async () => {

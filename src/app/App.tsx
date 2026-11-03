@@ -20,6 +20,7 @@ import { SessionPanel } from '../features/sessions/SessionPanel';
 import { usePracticeSessions } from '../features/sessions/usePracticeSessions';
 import {
   DEFAULT_SETTINGS,
+  DEFAULT_VOLUME,
   isSettings,
   SETTINGS_KEY,
   type Settings,
@@ -36,16 +37,24 @@ export function App() {
     isSettings,
     DEFAULT_SETTINGS,
   );
-  const { root, scaleId, tempo, view } = preferences.value;
+  const {
+    root,
+    scaleId,
+    tempo,
+    volume = DEFAULT_VOLUME,
+    view,
+  } = preferences.value;
   const setRoot = (root: PitchClass) =>
     preferences.update((settings) => ({ ...settings, root }));
   const setScaleId = (scaleId: ScaleId) =>
     preferences.update((settings) => ({ ...settings, scaleId }));
   const setTempo = (tempo: number) =>
     preferences.update((settings) => ({ ...settings, tempo }));
+  const setVolume = (volume: number) =>
+    preferences.update((settings) => ({ ...settings, volume }));
   const setView = (view: Settings['view']) =>
     preferences.update((settings) => ({ ...settings, view }));
-  const playback = useNotePlayback();
+  const playback = useNotePlayback(volume);
   const sessions = usePracticeSessions();
   // Every listening run is a session, frozen to the scale chosen when the
   // microphone becomes ready.
@@ -188,10 +197,13 @@ export function App() {
               <ScalePlayback
                 notes={notes}
                 tempo={tempo}
+                volume={volume}
                 isPlaying={playback.isPlaying}
                 activeNote={playback.activeNote}
                 error={playback.error}
                 onTempoChange={changeTempo}
+                // Volume applies to notes already playing, so it never stops them.
+                onVolumeChange={setVolume}
                 onPlay={(sequence) => {
                   void playback.play(sequence, tempo);
                 }}

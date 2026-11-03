@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotePlayer } from '../../platform/audio/NotePlayer';
 
-export function useNotePlayback() {
+export function useNotePlayback(volume: number) {
   const player = useRef<NotePlayer | null>(null);
   const request = useRef(0);
   const [activeNote, setActiveNote] = useState<number | null>(null);
@@ -28,12 +28,17 @@ export function useNotePlayback() {
     };
   }, [stop]);
 
+  useEffect(() => {
+    player.current?.setVolume(volume);
+  }, [volume]);
+
   async function play(notes: readonly number[], bpm: number) {
     stop();
     const currentRequest = request.current;
     setError('');
     setIsPlaying(true);
     player.current ??= new NotePlayer();
+    player.current.setVolume(volume);
     try {
       await player.current.play(notes, bpm, setActiveNote, () => {
         setIsPlaying(false);

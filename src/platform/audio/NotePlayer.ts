@@ -1,11 +1,35 @@
 import { midiToFrequency } from '../../domain/music/playback';
 
+/** Envelope peak at full volume. Notes never overlap, so this stays below clipping. */
+const PEAK_GAIN = 0.9;
+/** Volume changes glide this fast (seconds) so moving the slider mid-note doesn't click. */
+const VOLUME_GLIDE = 0.015;
+
+/** Maps a 0–100% volume to output gain. Squared, so slider steps sound even. */
+export function volumeToGain(volume: number): number {
+  if (!Number.isFinite(volume) || volume < 0 || volume > 100) {
+    throw new RangeError('Choose a volume between 0 and 100%.');
+  }
+  return (volume / 100) ** 2;
+}
+
 /** Output only: no microphone acquisition. Audio is created by play(), after a gesture. */
 export class NotePlayer {
-  private context: AudioContext | undefined;
+  private audio: { context: AudioContext; output: GainNode } | undefined;
+  private level = 1;
   private voices = new Map<OscillatorNode, GainNode>();
   private timers: ReturnType<typeof setTimeout>[] = [];
   private generation = 0;
+
+  /** Applies at once, including to notes already sounding. */
+  setVolume(volume: number): void {
+    this.level = volumeToGain(volume);
+    this.audio?.output.gain.setTargetAtTime(
+      this.level,
+      this.audio.context.currentTime,
+      VOLUME_GLIDE,
+    );
+  }
 
   async play(
     notes: readonly number[],
@@ -26,8 +50,8 @@ export class NotePlayer {
         'Audio playback is unavailable in this browser. Try a browser with Web Audio support.',
       );
     }
-    this.context ??= new AudioContext();
-    const context = this.context;
+    this.audio ??= this.openAudio();
+    const { context, output } = this.audio;
     await context.resume();
     // Stop, a new play request, or teardown may have happened while audio was starting.
     if (generation !== this.generation) return;
@@ -45,11 +69,11 @@ export class NotePlayer {
       oscillator.type = 'triangle';
       oscillator.frequency.setValueAtTime(frequencies[index]!, time);
       gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(0.18, time + 0.015);
+      gain.gain.linearRampToValueAtTime(PEAK_GAIN, time + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.001, time + duration - 0.02);
       gain.gain.linearRampToValueAtTime(0, time + duration);
       oscillator.connect(gain);
-      gain.connect(context.destination);
+      gain.connect(output);
       oscillator.onended = () => {
         oscillator.disconnect();
         gain.disconnect();
@@ -88,7 +112,16 @@ export class NotePlayer {
 
   dispose(): void {
     this.stop();
-    void this.context?.close().catch(() => {});
-    this.context = undefined;
+    void this.audio?.context.close().catch(() => {});
+    this.audio = undefined;
+  }
+
+  /** Voices feed one output gain, so volume changes reach every note. */
+  private openAudio() {
+    const context = new AudioContext();
+    const output = context.createGain();
+    output.gain.value = this.level;
+    output.connect(context.destination);
+    return { context, output };
   }
 }
