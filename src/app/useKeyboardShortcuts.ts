@@ -20,9 +20,26 @@ function isTextEntry(target: EventTarget | null): boolean {
 }
 
 /**
- * Runs the action mapped to a pressed key, such as `'?'` or `'1'`. Keys are
- * ignored with Ctrl, Alt or Meta, on repeat, when another handler already
- * claimed them, and while typing in a text field or choosing in a select.
+ * Radio groups and sliders move with the arrow keys, and so do scroll areas
+ * made focusable with tabindex, such as the fretboard.
+ */
+function usesArrowKeys(target: EventTarget | null): boolean {
+  if (target instanceof HTMLInputElement) {
+    return target.type === 'radio' || target.type === 'range';
+  }
+  return target instanceof HTMLElement && target.hasAttribute('tabindex');
+}
+
+function isArrowKey(key: string): boolean {
+  return key.startsWith('Arrow');
+}
+
+/**
+ * Runs the action mapped to a pressed key, such as `'?'`, `'1'` or
+ * `'ArrowUp'`. Keys are ignored with Ctrl, Alt or Meta, on repeat, when
+ * another handler already claimed them, and while typing in a text field or
+ * choosing in a select. Arrow keys are also left to the focused radio
+ * button, slider or scroll area.
  */
 export function useKeyboardShortcuts(
   shortcuts: Readonly<Record<string, () => void>>,
@@ -35,6 +52,7 @@ export function useKeyboardShortcuts(
       event.metaKey ||
       event.altKey ||
       isTextEntry(event.target) ||
+      (isArrowKey(event.key) && usesArrowKeys(event.target)) ||
       !Object.hasOwn(shortcuts, event.key)
     ) {
       return;

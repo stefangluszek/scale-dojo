@@ -1,6 +1,8 @@
 import { positionsOfNote, STANDARD_BASS } from '../domain/instruments/fretted';
 import { scalePlaybackNotes } from '../domain/music/playback';
 import {
+  cycleScale,
+  normalizePitchClass,
   scaleQuality,
   type PitchClass,
   type ScaleId,
@@ -62,6 +64,14 @@ export function App() {
     void playback.play([note], tempo);
   };
   const toggleView = () => setView(zen ? 'full' : 'zen');
+  const changeRoot = (value: PitchClass) => {
+    playback.stop();
+    setRoot(value);
+  };
+  const changeScale = (value: ScaleId) => {
+    playback.stop();
+    setScaleId(value);
+  };
 
   useKeyboardShortcuts({
     [VIEW_TOGGLE_KEY]: toggleView,
@@ -70,6 +80,17 @@ export function App() {
     ...Object.fromEntries(
       notes.map((note, index) => [String(index + 1), () => playNote(note)]),
     ),
+    // Zen has no root or scale controls, so arrows step through them: up and
+    // down move the root a semitone, left and right cycle the scales. The
+    // full page keeps arrows for scrolling.
+    ...(zen
+      ? {
+          ArrowUp: () => changeRoot(normalizePitchClass(root + 1)),
+          ArrowDown: () => changeRoot(normalizePitchClass(root - 1)),
+          ArrowRight: () => changeScale(cycleScale(scaleId, 1)),
+          ArrowLeft: () => changeScale(cycleScale(scaleId, -1)),
+        }
+      : {}),
   });
 
   return (
@@ -149,14 +170,8 @@ export function App() {
               playbackNotes={notes}
               activeNote={playback.activeNote}
               heardNote={heardNote}
-              onRootChange={(value) => {
-                playback.stop();
-                setRoot(value);
-              }}
-              onScaleChange={(value) => {
-                playback.stop();
-                setScaleId(value);
-              }}
+              onRootChange={changeRoot}
+              onScaleChange={changeScale}
               onPlayNote={playNote}
             />
             {!zen && (

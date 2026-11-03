@@ -185,6 +185,57 @@ test('zen circle center changes the scale and number keys play its notes', async
   expect(await page.evaluate(() => window.audioProbe.notes.length)).toBe(2);
 });
 
+test('zen arrow keys step the root and scale, but not on the fretboard or full page', async ({
+  page,
+}, testInfo) => {
+  await page.goto('./');
+  const heading = (name: string) =>
+    expect(page.getByRole('heading', { name })).toBeVisible();
+  await page.keyboard.press('ArrowUp');
+  await heading('C# major pentatonic');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await heading('B major pentatonic');
+  await page.keyboard.press('ArrowRight');
+  await heading('B minor pentatonic');
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  await heading('B natural minor');
+  await expect(page.locator('.practice-space')).toHaveAttribute(
+    'data-quality',
+    'minor',
+  );
+
+  // The focused fretboard keeps the arrow keys for scrolling.
+  const fretboard = page.getByRole('region', {
+    name: 'Scrollable bass fretboard',
+  });
+  await fretboard.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowUp');
+  await heading('B natural minor');
+  if (testInfo.project.name.startsWith('mobile')) {
+    await expect
+      .poll(() => fretboard.evaluate((element) => element.scrollLeft))
+      .toBeGreaterThan(0);
+  }
+
+  // The full page has root and scale controls; arrows scroll it instead.
+  await page.keyboard.press('?');
+  await fretboard.blur();
+  await page.keyboard.press('ArrowDown');
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(0);
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByRole('combobox', { name: 'Root note' })).toHaveValue(
+    '11',
+  );
+  await expect(page.getByRole('combobox', { name: 'Scale' })).toHaveValue(
+    'natural-minor',
+  );
+});
+
 test('production app keeps selectors, chips and accessible fretboard synchronized', async ({
   page,
 }, testInfo) => {
