@@ -165,8 +165,9 @@ export function ScaleExplorer({
               Tap the center of the circle to change the scale. Press{' '}
               <kbd>1</kbd>–<kbd>{playbackNotes.length}</kbd> to play its notes
               in order, ending on the root an octave up, and <kbd>?</kbd> for
-              zen mode. In zen mode, <kbd>↑</kbd> <kbd>↓</kbd> move the root a
-              semitone and <kbd>←</kbd> <kbd>→</kbd> change the scale.
+              zen mode. In zen mode, <kbd>Space</kbd> plays or stops the scale,{' '}
+              <kbd>↑</kbd> <kbd>↓</kbd> move the root a semitone and{' '}
+              <kbd>←</kbd> <kbd>→</kbd> change the scale.
             </p>
           </div>
         )}

@@ -63,6 +63,9 @@ export function App() {
   const playNote = (note: number) => {
     void playback.play([note], tempo);
   };
+  const playScale = () => {
+    void playback.play(notes, tempo);
+  };
   const toggleView = () => setView(zen ? 'full' : 'zen');
   const changeRoot = (value: PitchClass) => {
     playback.stop();
@@ -80,11 +83,13 @@ export function App() {
     ...Object.fromEntries(
       notes.map((note, index) => [String(index + 1), () => playNote(note)]),
     ),
-    // Zen has no root or scale controls, so arrows step through them: up and
-    // down move the root a semitone, left and right cycle the scales. The
-    // full page keeps arrows for scrolling.
+    // Zen has no root, scale or playback controls. Space plays the scale
+    // ascending at the saved tempo, or stops it. Arrows step through roots
+    // and scales: up and down move the root a semitone, left and right cycle
+    // the scales. The full page keeps Space and arrows for scrolling.
     ...(zen
       ? {
+          ' ': () => (playback.isPlaying ? playback.stop() : playScale()),
           ArrowUp: () => changeRoot(normalizePitchClass(root + 1)),
           ArrowDown: () => changeRoot(normalizePitchClass(root - 1)),
           ArrowRight: () => changeScale(cycleScale(scaleId, 1)),

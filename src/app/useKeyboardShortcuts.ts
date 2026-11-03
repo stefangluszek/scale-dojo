@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent, useRef } from 'react';
 
 /** Input types that don't take typed text, so shortcuts still work in them. */
 const NON_TEXT_INPUTS = new Set([
@@ -35,7 +35,7 @@ function isArrowKey(key: string): boolean {
 }
 
 /**
- * Runs the action mapped to a pressed key, such as `'?'`, `'1'` or
+ * Runs the action mapped to a pressed key, such as `'?'`, `'1'`, `' '` or
  * `'ArrowUp'`. Keys are ignored with Ctrl, Alt or Meta, on repeat, when
  * another handler already claimed them, and while typing in a text field or
  * choosing in a select. Arrow keys are also left to the focused radio
@@ -44,9 +44,17 @@ function isArrowKey(key: string): boolean {
 export function useKeyboardShortcuts(
   shortcuts: Readonly<Record<string, () => void>>,
 ) {
+  // The key whose press ran a shortcut. Its repeats and release are claimed
+  // too, so holding Space doesn't scroll and releasing it doesn't also press
+  // a focused button.
+  const held = useRef<string | null>(null);
+
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.repeat) {
+      if (event.key === held.current) event.preventDefault();
+      return;
+    }
     if (
-      event.repeat ||
       event.defaultPrevented ||
       event.ctrlKey ||
       event.metaKey ||
@@ -58,12 +66,22 @@ export function useKeyboardShortcuts(
       return;
     }
     event.preventDefault();
+    held.current = event.key;
     shortcuts[event.key]!();
   });
 
   useEffect(() => {
-    const listener = (event: KeyboardEvent) => onKeyDown(event);
-    document.addEventListener('keydown', listener);
-    return () => document.removeEventListener('keydown', listener);
+    const keyDown = (event: KeyboardEvent) => onKeyDown(event);
+    const keyUp = (event: KeyboardEvent) => {
+      if (event.key !== held.current) return;
+      event.preventDefault();
+      held.current = null;
+    };
+    document.addEventListener('keydown', keyDown);
+    document.addEventListener('keyup', keyUp);
+    return () => {
+      document.removeEventListener('keydown', keyDown);
+      document.removeEventListener('keyup', keyUp);
+    };
   }, []);
 }
